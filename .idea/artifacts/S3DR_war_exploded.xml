@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" name="S3DR:war exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/S3DR_war_exploded</output-path>
+    <root id="root">
+      <element id="javaee-facet-resources" facet="S3DR/web/Web" />
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="S3DR" />
+        </element>
+      </element>
+    </root>
+  </artifact>
+</component>
