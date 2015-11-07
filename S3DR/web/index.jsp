@@ -12,8 +12,14 @@
     <title>Stereoscopic 3D Reconstruction System</title>
   </head>
   <body>
+  $END$
   <div class="center-block" style="margin: 2em">
     <h1>Stereoscopic 3D Reconstruction System</h1>
+    <div>
+      <img src="/a?cam=0">
+      <img src="/a?cam=1">
+      <img src="/a?cam=2">
+    </div>
     <div class="pull-left">
       <div style="float: left;margin: 1em"><img src="cam1.jpg"><p align="center">Camera 1</p></div>
       <div style="float: left;margin: 1em"><img src="cam2.jpg"><p align="center">Camera 2</p></div>
@@ -30,7 +36,7 @@
     <div style="margin: 5em">
 
     </div>
-  $END$
+
   </body>
 </html>
 

@@ -1,6 +1,8 @@
 package engi3051;
 
 import org.opencv.core.*;
+import org.opencv.features2d.FeatureDetector;
+import org.opencv.features2d.*;
 import org.opencv.imgcodecs.*;
 import org.opencv.videoio.*;
 import org.opencv.calib3d.*;
@@ -31,23 +33,38 @@ public class testing {
 
         System.out.println("Cameras found: " + cams.size());
 
-        Mat frame;
+        ArrayList<Mat> frames = new ArrayList<Mat>();
+        ArrayList<Mat> desc = new ArrayList<Mat>();
+        ArrayList<MatOfKeyPoint> keypts = new ArrayList<MatOfKeyPoint>();
+
         for(VideoCapture c : cams) {
-            frame = new Mat();
+            Mat f = new Mat();
             while (true) {
-                if (c.read(frame)) {
+                if (c.read(f)) {
                     System.out.println("Frame Obtained");
-                    System.out.println("Captured Frame Width " +
-                            frame.width() + " Height " + frame.height());
-                    Imgcodecs.imwrite("camera"+cams.indexOf(c)+".jpg", frame);
+                    System.out.println("Captured Frame Width " + f.width() + " Height " + f.height());
+                    Imgcodecs.imwrite("camera"+cams.indexOf(c)+".jpg", f);
                     System.out.println("OK");
+                    frames.add(f);
+                    desc.add(new Mat(f.rows(),f.cols(),f.type()));
                     break;
                 }
             }
         }
 
+        FeatureDetector detector = FeatureDetector.create(FeatureDetector.FAST);
+        DescriptorExtractor extractor = DescriptorExtractor.create(DescriptorExtractor.FREAK);
+
+        detector.detect(frames,keypts);
+        extractor.compute(frames,keypts,desc);
+
+        for (MatOfKeyPoint mk : keypts){
+            System.out.println(mk.size());
+        }
 
 
+
+        //use iterator to avoid concurrent modification
         Iterator<VideoCapture> c = cams.iterator();
         while(c.hasNext()){
             c.next().release();

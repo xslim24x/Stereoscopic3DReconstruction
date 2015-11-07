@@ -7,6 +7,9 @@
         <element id="directory" name="classes">
           <element id="module-output" name="S3DR" />
         </element>
+        <element id="directory" name="lib">
+          <element id="library" level="project" name="java" />
+        </element>
       </element>
     </root>
   </artifact>
