@@ -20,7 +20,6 @@ import java.util.Iterator;
  */
 public class testing {
 
-
     public static void main(String args[]){
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 
@@ -57,6 +56,11 @@ public class testing {
 
         detector.detect(frames,keypts);
         extractor.compute(frames,keypts,desc);
+
+        StereoBM smatcher = StereoBM.create();
+
+        Mat Diffs = new Mat();
+        smatcher.compute(desc.get(0),desc.get(1),Diffs);
 
         for (MatOfKeyPoint mk : keypts){
             System.out.println(mk.size());

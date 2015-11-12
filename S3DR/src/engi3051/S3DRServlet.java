@@ -40,7 +40,7 @@ public class S3DRServlet extends HttpServlet {
         String opencvpath = "D:\\opencv\\build\\java\\x64\\";
         System.load(opencvpath + Core.NATIVE_LIBRARY_NAME + ".dll");
         initCams();
-
+        cams.get(0).
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
