@@ -1,0 +1,15 @@
+Requirements document feedback meeting
+2:47PM October 7 2015
+
+Naser:
+Need to mention software/dependancies are free, cameras provided by customer and might have to buy server space for commercial product.
+Assume customer is providing server space due to usb connectivity, local capture usb send to server, only providing software.
+
+Greg:
+Do foot notes instead of references
+Time accessed, author, link
+Chicago APA
+
+Talk about safety, privacy ,etc
+Business model and economic impacts
+Presentation.

@@ -1,0 +1,43 @@
+Design Document Feedback Meeting
+2:45PM October 29 2015
+
+Naser:
+Describe classes, why are they needed
+Even though client has no objects, you have to describe
+Cocomo, total product (not sum) shouldn’t have 0, 1's should only be where it's nominal.
+Make argument about lines of code, where it came from
+
+Greg:
+Numbers bellow 10 use words
+Webgl, feature and standard of browser
+Calibration to extract the parameters of the camera
+Don’t end sentence in preposition
+Overview, front end needs to move outside of server
+File system
+Easiest way to generate export on the fly
+Open a file that cannot be opened
+Attribute should be taken out of class diagram
+Class should have short description 
+	Attributes/functions
+Stereopair rename 
+'Its' not possesive
+
+1 page landscape for gantt chart
+No contractions, we'll
+Say its open source no risk
+
+Design:
+Use jquery ui
+Most important algorithms
+	Reconstruction, project, calibration
+	Paraphrase docs
+	Mesh, send in to be rendered
+	Point cloud to mesh if there isnt one use spheres
+
+Open source factors, upfront cost is 0
+Maintenance costs might be increased cause no support
+Cite
+Community support
+Cost of hardware left to consumer
+Turn on https other than that its assumed that the server system is on the customer site, leaving it to the consumer
+Safety
