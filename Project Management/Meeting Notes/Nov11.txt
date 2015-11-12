@@ -1,0 +1,15 @@
+Post Design meeting
+5:17 PM November 11 2015
+
+Scrum meeting:
+Antoine learning css3/html5/jquery
+Gui all in jsp but Webgl missing from front end
+Slim matching works but need to output pointcloud to verify things work, start calibration and other steps
+
+Tasks to start off with
+Front end:
+	Develop ajax/js to update camera feeds
+	Get webgl to open files
+Back end:
+	Output point cloud
+	Self calibration

@@ -1,0 +1,10 @@
+Post Design meeting
+4:17 PM November 11 2015
+
+Naser Feedback:
+State if front end is just web components, was looking for oo design
+State if algorithms are just being called, no implementation of anything complex
+Make attributes/methods more clear in camera class?
+
+Greg:
+all feedback in shared document
