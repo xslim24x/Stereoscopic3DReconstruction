@@ -4,6 +4,7 @@ import org.opencv.core.*;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.features2d.*;
 import org.opencv.imgcodecs.*;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.*;
 import org.opencv.calib3d.*;
 
@@ -62,11 +63,14 @@ public class testing {
         Mat Diffs = new Mat();
         smatcher.compute(desc.get(0),desc.get(1),Diffs);
 
+        //Mat fundMat = Calib3d.findFundamentalMat();
+        //Mat output = new Mat(Diffs.size(),Diffs.type());
+        //Mat Q = Calib3d.stereoRectifyUncalibrated();
+        //Calib3d.reprojectImageTo3D(Diffs,output,);
+
         for (MatOfKeyPoint mk : keypts){
             System.out.println(mk.size());
         }
-
-
 
         //use iterator to avoid concurrent modification
         Iterator<VideoCapture> c = cams.iterator();
@@ -76,4 +80,40 @@ public class testing {
         }
 
     }
+
+    private Mat disparityMap(Mat mLeft, Mat mRight){
+        // Converts the images to a proper type for stereoMatching
+        Mat left = new Mat();
+        Mat right = new Mat();
+
+        //Imgproc.cvtColor(rectLeft, left, Imgproc.COLOR_BGR2GRAY);
+       // Imgproc.cvtColor(rectRight, right, Imgproc.COLOR_BGR2GRAY);
+
+        // Create a new image using the size and type of the left image
+        Mat disparity = new Mat(left.size(), left.type());
+
+        int numDisparity = (int)(left.size().width/8);
+
+        /*
+        StereoSGBM stereoAlgo = new StereoSGBM(
+                0,    // min DIsparities
+                numDisparity, // numDisparities
+                11,   // SADWindowSize
+                2*11*11,   // 8*number_of_image_channels*SADWindowSize*SADWindowSize   // p1
+                5*11*11,  // 8*number_of_image_channels*SADWindowSize*SADWindowSize  // p2
+
+                -1,   // disp12MaxDiff
+                63,   // prefilterCap
+                10,   // uniqueness ratio
+                0, // sreckleWindowSize
+                32, // spreckle Range
+                false); // full DP
+        // create the DisparityMap - SLOW: O(Width*height*numDisparity)
+        stereoAlgo.compute(left, right, disparity);
+
+        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
+        */
+        return disparity;
+    }
+
 }

@@ -10,15 +10,15 @@
   <head>
     <meta charset="UTF-8">
     <title>Stereoscopic 3D Reconstruction System</title>
+    <script src="clientS3DR.js"></script>
   </head>
   <body>
-  $END$
   <div class="center-block" style="margin: 2em">
     <h1>Stereoscopic 3D Reconstruction System</h1>
     <div>
-      <img src="/a?cam=0">
-      <img src="/a?cam=1">
-      <img src="/a?cam=2">
+      <img id="cam1" src="/a?cam=0">
+      <img id="cam2" src="/a?cam=1">
+      <!--<img src="/a?cam=2">  -->
     </div>
     <div class="pull-left">
       <div style="float: left;margin: 1em"><img src="cam1.jpg"><p align="center">Camera 1</p></div>

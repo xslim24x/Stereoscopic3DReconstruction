@@ -40,7 +40,7 @@ public class S3DRServlet extends HttpServlet {
         String opencvpath = "D:\\opencv\\build\\java\\x64\\";
         System.load(opencvpath + Core.NATIVE_LIBRARY_NAME + ".dll");
         initCams();
-        cams.get(0).
+        //cams.get(0)
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -89,12 +89,11 @@ public class S3DRServlet extends HttpServlet {
     }
 
     public void initCams(){
-
-        for (int i = 0;i<10;i++){
+        // max 20 capture devices are connected
+        for (int i = 0;i<20;i++){
             VideoCapture c = new VideoCapture(i);
             if (c.isOpened())
                 cams.add(c);
         }
-
     }
 }
