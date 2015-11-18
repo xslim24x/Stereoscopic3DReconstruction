@@ -1,0 +1,20 @@
+5:47 PM November 18 2015
+
+Scrum meeting:
+Antoine
+	3D rotation using Thress.js using keyboard
+	Will start testing doc
+
+Slim
+	Frontend updated to see cameras live
+	Working on Calibration
+	Unrectified pointclouds still need cam param
+	Using Meshlab to view reconstruction
+	
+Tasks to start off with
+Front end:
+	Pending: Get webgl to open files
+		setup script to use obj files
+Back end:
+	Output point cloud
+	Self calibration
