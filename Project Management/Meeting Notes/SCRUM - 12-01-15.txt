@@ -1,0 +1,29 @@
+1:58 PM December 1 2015
+
+Scrum meeting:
+Antoine
+	3D rotation working with mouse and keyboard
+	Will implement into front end and import obj
+
+Slim
+	Self Calibration works by grabbing values when checker board is detected. Need to think of a way to make it easy for the user.
+		Suggested to start up looking for checker board, if found in the first 15 sec -> not found stop
+		If found process calib
+			Context menu on each picture:
+			Label: Left Camera
+			Select input 
+				-> Cam #
+			Calibration
+				-> Label: Status, Grn Calib, Blck Unknown
+				-> Open configuration
+				-> Save becomes added if confirmed
+	Autocalibration isnt a functional requirement -> optional
+	
+Front end:
+	Pending: 
+		implement 3d canvas
+		setup script to use obj files
+		implement camera selection
+		implement calibration parameters
+Back end:
+	Fix up self calibration
