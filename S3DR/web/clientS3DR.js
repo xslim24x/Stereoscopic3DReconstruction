@@ -5,7 +5,7 @@
 
 function refresh(cam)
 {
-    var timeout = 100;
+    var timeout = 200;
     (function startRefresh()
     {
         var address

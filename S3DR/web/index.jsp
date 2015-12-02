@@ -10,7 +10,11 @@
   <head>
     <meta charset="UTF-8">
     <title>Stereoscopic 3D Reconstruction System</title>
-    <script src="clientS3DR.js"></script>
+      <script src="jquery-1.11.3.min.js"></script>
+      <script src="jquery.contextmenu.js"></script>
+      <script src="clientS3DR.js"></script>
+
+    <link rel="stylesheet" href="clientS3DR.css" />
   </head>
   <body>
   <div class="center-block" style="margin: 2em">
@@ -20,10 +24,12 @@
       <img id="cam2" src="/a?cam=1">
       <!--<img src="/a?cam=2">  -->
     </div>
+    <!--
     <div class="pull-left">
       <div style="float: left;margin: 1em"><img src="cam1.jpg"><p align="center">Camera 1</p></div>
       <div style="float: left;margin: 1em"><img src="cam2.jpg"><p align="center">Camera 2</p></div>
     </div>
+    -->
     <div style="clear:left"><button class="btn btn-primary btn-lg" >Capture</button></div>
     <div style="margin: 5em;clear:left">
 
@@ -33,10 +39,25 @@
       <button class="btn btn-success btn-lg" style="inline-box-align: 3;margin-bottom: 15em">Export</button>
 
     </div>
+    <div class="hide" id="rmenu">
+      <ul>
+        <li>
+          <h1>Right</h1>
+        </li>
+
+        <li>
+          <a href="http://localhost:8080/login">Calibration</a>
+        </li>
+
+        <li>
+          <a href="C:\"></a>
+        </li>
+      </ul>
+    </div>
     <div style="margin: 5em">
 
     </div>
-
+  </div>
   </body>
 </html>
 

@@ -31,69 +31,52 @@ import javax.imageio.*;
  */
 @WebServlet(name = "S3DRServlet", urlPatterns = {"/a"})
 public class S3DRServlet extends HttpServlet {
-    public ArrayList<VideoCapture> cams = new ArrayList<VideoCapture>();
     private String message;
+    public ReconstructionSystem rs;
 
     public void init() throws ServletException
     {
         // Do required initialization
         String opencvpath = "D:\\opencv\\build\\java\\x64\\";
         System.load(opencvpath + Core.NATIVE_LIBRARY_NAME + ".dll");
-        initCams();
-        //cams.get(0)
+        rs = new ReconstructionSystem();
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        response.setContentType("text/html");
 
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-
-        System.out.println("Servlet running");
+        if (rs.cams.size()<2){
+            return;
+        }
         //PrintWriter out = response.getWriter();
         //response.setContentType("text/html");
         response.setContentType("image/jpeg");
         java.io.OutputStream outputStream = response.getOutputStream();
-
-
         BufferedImage image;
         int camreq = Integer.parseInt(request.getParameter("cam"));
 
-        if(camreq <= cams.size()) {
+        if(camreq <= rs.cams.size()){
             Mat f = new Mat();
             while (true) {
-                if (cams.get(camreq).read(f)) {
-
-                    MatOfByte byteMat = new MatOfByte();
-                    Imgcodecs.imencode(".jpg",f,byteMat);
-                    //System.setProperty("java.io.tmpdir", "C:/temp");
-                    ImageIO.setUseCache(false);
-                    image = ImageIO.read(new ByteArrayInputStream(byteMat.toArray()));
-                    Graphics2D graphics2D = image.createGraphics();
-                    graphics2D.dispose();
+                if (rs.frameread(camreq,f)) {
+                    image = rs.mat2image(f);
                     response.setContentType("image/jpeg");
                     ImageIO.write(image,"jpeg",outputStream);
                     outputStream.flush();
-                    //Saving File doesnt work..
-                    //File savefile = new File("camera"+cams.indexOf(c)+".jpg");
-                    //ImageIO.write(image,"jpeg",savefile);
-                    //Imgcodecs.imwrite("camera"+cams.indexOf(c)+".jpg",f);
-                    System.out.println("OK");
                     break;
                 }
             }
         }
         outputStream.close();
-        //out.flush();
-    }
-
-    public void initCams(){
-        // max 20 capture devices are connected
-        for (int i = 0;i<20;i++){
-            VideoCapture c = new VideoCapture(i);
-            if (c.isOpened())
-                cams.add(c);
-        }
     }
 }
