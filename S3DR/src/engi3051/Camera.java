@@ -17,8 +17,9 @@ import java.util.List;
  * Created by Slim on 11/6/2015.
  */
 public class Camera {
-    private int chessc = 8;
-    private int chessr = 5;
+    private final int chessc = 7;
+    private final int chessr = 7;
+    private final int MaxCap = 5;
 
     public VideoCapture camsource;
     private List<Mat> rvecs = new ArrayList<Mat>();
@@ -82,7 +83,7 @@ public class Camera {
                 // show the chessboard inner corners on screen
                 Calib3d.drawChessboardCorners(f, boardSize, imageCorners, found);
 
-                if (calibtimer == 0 && captures < 16)
+                if (calibtimer == 0 && captures < MaxCap)
                 {
                     System.out.println("Calibrating");
                     // save all the needed values
@@ -93,7 +94,7 @@ public class Camera {
                 }
 
                 // reach the correct number of images needed for the calibration
-                if (captures == 16 && !isCalibrated)
+                if (captures == MaxCap && !isCalibrated)
                 {
                     System.out.println("Calibrated");
                     calibrateCam();
