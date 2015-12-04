@@ -63,19 +63,28 @@ public class S3DRServlet extends HttpServlet {
         response.setContentType("image/jpeg");
         java.io.OutputStream outputStream = response.getOutputStream();
         BufferedImage image;
-        int camreq = Integer.parseInt(request.getParameter("cam"));
-
-        if(camreq <= rs.cams.size()){
-            Mat f = new Mat();
-            while (true) {
-                if (rs.frameread(camreq,f)) {
-                    image = rs.mat2image(f);
-                    response.setContentType("image/jpeg");
-                    ImageIO.write(image,"jpeg",outputStream);
-                    outputStream.flush();
-                    break;
+        String getcam = request.getParameter("cam");
+        String getdisp = request.getParameter("disp");
+        if (getcam!=null){
+            int camreq = Integer.parseInt(getcam);
+            if(camreq <= rs.cams.size()){
+                Mat f = new Mat();
+                while (true) {
+                    if (rs.frameread(camreq,f)) {
+                        image = rs.mat2image(f);
+                        response.setContentType("image/jpeg");
+                        ImageIO.write(image,"jpeg",outputStream);
+                        outputStream.flush();
+                        break;
+                    }
                 }
             }
+        }
+        if (getdisp!=null){
+            image = rs.mat2image(rs.capture());
+            response.setContentType("image/jpeg");
+            ImageIO.write(image,"jpeg",outputStream);
+            outputStream.flush();
         }
         outputStream.close();
     }
