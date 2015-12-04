@@ -1,0 +1,12 @@
+10:42 PM December 1 2015
+
+Scrum meeting:
+Slim:
+	Fixed up errors causing server to crash with inproper get requests
+	working on getting disparity, different webcams are causing issues due to different resolution/sizes
+	will buy 2 of the same cameras to fix this
+		or code to crop from the smallest if time permits
+
+Antoine:
+	Reinstalled intelliJ, Tomcat, openCV
+	all setup and working on implementing cube code into front end
