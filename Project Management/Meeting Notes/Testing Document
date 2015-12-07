@@ -1,0 +1,27 @@
+Testing Document
+5:30 PM November 18 2015
+ATAC Room 3003
+
+Document Tasks:
+	
+	Cover Page
+	Revision Page
+	Table of Content
+	
+	Introduction
+		System overview
+		Test approach
+		
+	Test Plan
+		Features to be tested
+		Features not to be tested
+		Testing tool and environment
+		
+	Test Cases
+		Purpose
+		Input
+		Expected Outputs
+		Pass/Fail criteria
+		Test Procedure
+		
+	Appendix: Test Logs
