@@ -1,9 +1,12 @@
 package engi3051;
 
+import org.opencv.calib3d.Calib3d;
 import org.opencv.calib3d.StereoBM;
+import org.opencv.calib3d.StereoSGBM;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.core.*;
 
@@ -12,15 +15,13 @@ import java.awt.image.BufferedImage;
 import java.awt.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 
 /**
  * Created by Slim on 11/17/2015.
  */
 public class ReconstructionSystem {
-    ArrayList<Mat> frames = new ArrayList<Mat>();
-    ArrayList<Mat> desc = new ArrayList<Mat>();
-    ArrayList<MatOfKeyPoint> keypts = new ArrayList<MatOfKeyPoint>();
 
     private int left =0,right=1;
     public ArrayList<Camera> cams = new ArrayList<Camera>();
@@ -28,11 +29,13 @@ public class ReconstructionSystem {
     private FeatureDetector detector;
     private DescriptorExtractor extractor;
     private StereoBM smatcher;
+    private StereoSGBM sgbmmatcher;
 
     public ReconstructionSystem(){
-        detector = FeatureDetector.create(FeatureDetector.AKAZE);
-        extractor = DescriptorExtractor.create(DescriptorExtractor.AKAZE);
-        smatcher = StereoBM.create();
+        detector = FeatureDetector.create(FeatureDetector.FAST);
+        extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+        //smatcher = StereoBM.create();
+        //sgbmmatcher = StereoSGBM.create(2,2,1);
 
         initCams();
     }
@@ -73,53 +76,52 @@ public class ReconstructionSystem {
 
     public Mat capture(){
 
-        frames.clear();
-        keypts.clear();
-        desc.clear();
+        Mat lframe = new Mat();
+        Mat rframe = new Mat();
 
-        frames.add(new Mat());
-        frames.add(new Mat());
+        cams.get(0).getFrame(lframe);
+        cams.get(1).getFrame(rframe);
 
-        System.out.println("frames: " + frames.size());
-        System.out.println("keypts: " + keypts.size());
-        System.out.println("desc: " + desc.size());
+        //get grayscale left/right frames
+        Imgproc.cvtColor(lframe, lframe, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(rframe, rframe, Imgproc.COLOR_BGR2GRAY);
 
-        cams.get(0).getFrame(frames.get(0));
-        cams.get(1).getFrame(frames.get(1));
+        Mat disparity = new Mat(lframe.size(), lframe.type());
+        int numDisparity = (int)(lframe.size().width/8);
 
-        detector.detect(frames,keypts);
-        extractor.compute(frames,keypts,desc);
-
-        Mat Diffs = new Mat();
-
-        System.out.println("desc 0: " + desc.get(0).size());
-        System.out.println("desc 1: " + desc.get(1).size());
-
-        smatcher.compute(desc.get(0),desc.get(1),Diffs);
+        //smatcher = StereoBM.create(96,15);
+        //smatcher.compute(lframe,rframe,disparity);
+        sgbmmatcher = StereoSGBM.create(12,96,15);
+        sgbmmatcher.compute(lframe,rframe,disparity);
 
         //Mat fundMat = Calib3d.findFundamentalMat();
         //Mat output = new Mat(Diffs.size(),Diffs.type());
         //Mat Q = Calib3d.stereoRectifyUncalibrated();
         //Calib3d.reprojectImageTo3D(Diffs,output,);
 
-        for (MatOfKeyPoint mk : keypts){
-            System.out.println(mk.size());
-        }
-        return Diffs;
+        //normalize to increase contrast
+        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
+
+        return disparity;
     }
 
     private Mat disparityMap(Mat mLeft, Mat mRight){
         // Converts the images to a proper type for stereoMatching
-        Mat left = new Mat();
-        Mat right = new Mat();
 
-        //Imgproc.cvtColor(rectLeft, left, Imgproc.COLOR_BGR2GRAY);
-        // Imgproc.cvtColor(rectRight, right, Imgproc.COLOR_BGR2GRAY);
+        Mat lold = new Mat();
+        Mat rold = new Mat();
+        cams.get(0).getFrame(lold);
+        cams.get(1).getFrame(rold);
+        Mat leftfr = new Mat();
+        Mat rightfr = new Mat();
+
+        Imgproc.cvtColor(lold, leftfr, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(rold, rightfr, Imgproc.COLOR_BGR2GRAY);
 
         // Create a new image using the size and type of the left image
-        Mat disparity = new Mat(left.size(), left.type());
+        Mat disparity = new Mat(leftfr.size(), leftfr.type());
 
-        int numDisparity = (int)(left.size().width/8);
+        int numDisparity = (int)(leftfr.size().width/8);
 
         /*
         StereoSGBM stereoAlgo = new StereoSGBM(
@@ -143,6 +145,56 @@ public class ReconstructionSystem {
         return disparity;
     }
 
+    public Mat reconstruct(){
 
+        Mat lframe = new Mat();
+        Mat lgray = new Mat();
+        Mat leftDesc = new Mat();
+        MatOfKeyPoint leftKeypt = new MatOfKeyPoint();
+        Mat rframe = new Mat();
+        Mat rgray = new Mat();
+        Mat rightDesc = new Mat();
+        MatOfKeyPoint rightKeypt = new MatOfKeyPoint();
+
+        cams.get(0).getFrame(lframe);
+        cams.get(1).getFrame(rframe);
+
+
+        Imgproc.cvtColor(lframe, lgray, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(rframe, rgray, Imgproc.COLOR_BGR2GRAY);
+
+        detector.detect(lgray,leftKeypt);
+        extractor.compute(lgray,leftKeypt,leftDesc);
+
+        detector.detect(rgray,rightKeypt);
+        extractor.compute(rgray,rightKeypt,rightDesc);
+
+        Mat disparity = new Mat();//frames.get(1).size(), frames.get(1).type());
+        int numDisparity = (int)(lframe.size().width/8);
+
+        System.out.println("Left\nSize:" + leftDesc.size() + " Type:" + leftDesc.type() + " Depth:" + leftDesc.depth());
+        System.out.println("Right\nSize:" + rightDesc.size() + " Type:" + rightDesc.type());
+
+        Mat l8bit = new Mat();
+        Mat r8bit = new Mat();
+        lgray.convertTo(l8bit,0);
+        rgray.convertTo(r8bit,0);
+        smatcher = StereoBM.create(96,15);
+        smatcher.compute(l8bit,r8bit,disparity);
+        //sgbmmatcher = StereoSGBM.create(2,90,15);
+        //sgbmmatcher.compute(lgray,rgray,disparity);
+
+
+
+
+        //Mat fundMat = Calib3d.findFundamentalMat();
+        //Mat output = new Mat(Diffs.size(),Diffs.type());
+        //Mat Q = Calib3d.stereoRectifyUncalibrated();
+        //Calib3d.reprojectImageTo3D(Diffs,output,);
+
+        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
+
+        return disparity;
+    }
 
 }
