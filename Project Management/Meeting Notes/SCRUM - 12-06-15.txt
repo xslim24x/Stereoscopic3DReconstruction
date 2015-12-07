@@ -1,0 +1,13 @@
+10:55 PM December 6 2015
+
+Goals:
+	Get it working, bad output is better than no output
+	Presentation - Background info, Test Results, Demo
+
+Scrum meeting:
+Slim:
+	Outputting disparity looks wrong but will tweak with settings
+	Error causing issues with disparity was from featuredetector/descriptormatcher
+	SIFT/SURF aren't free so were excluded from prebuilt java libraries
+	Virtualbox with Ubuntu installed, make/building libraries with extra content (opencv_contrib)
+		Will get Tomcat working soon for "packaged product"
