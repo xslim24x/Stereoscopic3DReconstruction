@@ -1,0 +1,27 @@
+Specification Document
+6:00 PM October 21 2015
+ESS Office
+
+Document tasks:
+	Cover Page
+	Revision page
+	Table of Content
+	Introduction
+	Product Specification
+		UML Functional models
+		Software architecture
+		UML Class diagram
+		Database model and diagram
+		Sequence diagram
+		communication protocols and messaging format
+		User interface (GUI)
+		Technical documentation
+		
+	Project Management Plan
+		Software process model
+		Roles and responsibilities
+			subsystems
+			deliverables and milestones
+			leadership
+		Intermediate COCOMO
+		Risks and mitigation
