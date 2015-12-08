@@ -1,0 +1,15 @@
+6:17 PM December 7 2015
+
+Goals:
+	Get it working, bad output is better than no output
+	Presentation - Background info, Test Results, Demo
+
+Scrum meeting:
+Antoine:
+	Git, Tomcat/IntelliJ, adding code for rotation
+	Download PLY or ASC file and add to rotation
+
+Slim:
+	Will finish off projection to 3D	
+	Creating jquery fancybox to optimize disparity
+	Adding jquery context menu to select proper input
