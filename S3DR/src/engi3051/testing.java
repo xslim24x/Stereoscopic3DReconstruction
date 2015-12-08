@@ -9,6 +9,10 @@ import org.opencv.videoio.*;
 import org.opencv.calib3d.*;
 
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -23,97 +27,45 @@ public class testing {
 
     public static void main(String args[]){
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-
-        ArrayList<VideoCapture> cams = new ArrayList<VideoCapture>();
-        for (int i = 0;i<10;i++){
-            VideoCapture c = new VideoCapture(i);
-            if (c.isOpened())
-                cams.add(c);
-        }
-
-        System.out.println("Cameras found: " + cams.size());
-
-        ArrayList<Mat> frames = new ArrayList<Mat>();
-        ArrayList<Mat> desc = new ArrayList<Mat>();
-        ArrayList<MatOfKeyPoint> keypts = new ArrayList<MatOfKeyPoint>();
-
-        for(VideoCapture c : cams) {
-            Mat f = new Mat();
-            while (true) {
-                if (c.read(f)) {
-                    System.out.println("Frame Obtained");
-                    System.out.println("Captured Frame Width " + f.width() + " Height " + f.height());
-                    Imgcodecs.imwrite("camera"+cams.indexOf(c)+".jpg", f);
-                    System.out.println("OK");
-                    frames.add(f);
-                    desc.add(new Mat(f.rows(),f.cols(),f.type()));
-                    break;
-                }
-            }
-        }
-
-        FeatureDetector detector = FeatureDetector.create(FeatureDetector.FAST);
-        DescriptorExtractor extractor = DescriptorExtractor.create(DescriptorExtractor.FREAK);
-
-        detector.detect(frames,keypts);
-        extractor.compute(frames,keypts,desc);
-
-        StereoBM smatcher = StereoBM.create();
-
-        Mat Diffs = new Mat();
-        smatcher.compute(desc.get(0),desc.get(1),Diffs);
-
-        //Mat fundMat = Calib3d.findFundamentalMat();
-        //Mat output = new Mat(Diffs.size(),Diffs.type());
-        //Mat Q = Calib3d.stereoRectifyUncalibrated();
-        //Calib3d.reprojectImageTo3D(Diffs,output,);
-
-        for (MatOfKeyPoint mk : keypts){
-            System.out.println(mk.size());
-        }
-
-        //use iterator to avoid concurrent modification
-        Iterator<VideoCapture> c = cams.iterator();
-        while(c.hasNext()){
-            c.next().release();
-            c.remove();
-        }
+        JFrame f = new swingwindow();
 
     }
 
-    private Mat disparityMap(Mat mLeft, Mat mRight){
-        // Converts the images to a proper type for stereoMatching
-        Mat left = new Mat();
-        Mat right = new Mat();
+    public static class swingwindow extends JFrame implements ActionListener {
+        private JButton startcam, stopcam, capture;
+        private JLabel lblLeft, lblRight, lpic, rpic;
+        private JTextField lcam, rcam;
+        private JPanel lpanel, rpanel,bpanel;
 
-        //Imgproc.cvtColor(rectLeft, left, Imgproc.COLOR_BGR2GRAY);
-       // Imgproc.cvtColor(rectRight, right, Imgproc.COLOR_BGR2GRAY);
+        public swingwindow(){
+            setTitle("S3DR Tester");
+            setSize(1200,800);
+            setLocation(400,200);
+            setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        // Create a new image using the size and type of the left image
-        Mat disparity = new Mat(left.size(), left.type());
+            lpanel = new JPanel();
+            lpanel.setLayout(new GridLayout());
+            lblLeft = new JLabel("Left");
+            lpanel.add(lblLeft);
+            lcam = new JTextField("0");
+            lpanel.add(lcam);
+            lpic = new JLabel(new ImageIcon());
 
-        int numDisparity = (int)(left.size().width/8);
 
-        /*
-        StereoSGBM stereoAlgo = new StereoSGBM(
-                0,    // min DIsparities
-                numDisparity, // numDisparities
-                11,   // SADWindowSize
-                2*11*11,   // 8*number_of_image_channels*SADWindowSize*SADWindowSize   // p1
-                5*11*11,  // 8*number_of_image_channels*SADWindowSize*SADWindowSize  // p2
+            rpanel = new JPanel();
+            rpanel.setLayout(new BoxLayout(rpanel,BoxLayout.PAGE_AXIS));
+            lblRight = new JLabel("Right");
+            //lcam =
 
-                -1,   // disp12MaxDiff
-                63,   // prefilterCap
-                10,   // uniqueness ratio
-                0, // sreckleWindowSize
-                32, // spreckle Range
-                false); // full DP
-        // create the DisparityMap - SLOW: O(Width*height*numDisparity)
-        stereoAlgo.compute(left, right, disparity);
 
-        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
-        */
-        return disparity;
+
+            setVisible(true);
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+
+        }
     }
 
 }
