@@ -65,6 +65,7 @@ public class S3DRServlet extends HttpServlet {
         BufferedImage image;
         String getcam = request.getParameter("cam");
         String getdisp = request.getParameter("disp");
+        String getcap = request.getParameter("cap");
         if (getcam!=null){
             int camreq = Integer.parseInt(getcam);
             if(camreq <= rs.cams.size()){
@@ -81,7 +82,14 @@ public class S3DRServlet extends HttpServlet {
             }
         }
         if (getdisp!=null){
-            image = rs.mat2image(rs.capture());
+            int disptype = Integer.parseInt(getdisp);
+            image = rs.mat2image(rs.disparity(disptype));
+            response.setContentType("image/jpeg");
+            ImageIO.write(image,"jpeg",outputStream);
+            outputStream.flush();
+        }
+        if (getcap!=null){
+            image = rs.mat2image(rs.reconstruct());
             response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
             outputStream.flush();

@@ -74,7 +74,7 @@ public class ReconstructionSystem {
     }
 
 
-    public Mat capture(){
+    public Mat disparity(int type){
 
         Mat lframe = new Mat();
         Mat rframe = new Mat();
@@ -89,10 +89,16 @@ public class ReconstructionSystem {
         Mat disparity = new Mat(lframe.size(), lframe.type());
         int numDisparity = (int)(lframe.size().width/8);
 
-        //smatcher = StereoBM.create(96,15);
-        //smatcher.compute(lframe,rframe,disparity);
-        sgbmmatcher = StereoSGBM.create(12,96,15);
-        sgbmmatcher.compute(lframe,rframe,disparity);
+        if (type == 1){
+            sgbmmatcher = StereoSGBM.create(12,96,15);
+            sgbmmatcher.compute(lframe,rframe,disparity);
+        }
+        else{
+            smatcher = StereoBM.create(96,15);
+            smatcher.compute(lframe,rframe,disparity);
+        }
+
+
 
         //Mat fundMat = Calib3d.findFundamentalMat();
         //Mat output = new Mat(Diffs.size(),Diffs.type());
@@ -146,55 +152,32 @@ public class ReconstructionSystem {
     }
 
     public Mat reconstruct(){
+        Camera left = cams.get(0);
+        Camera right = cams.get(1);
 
-        Mat lframe = new Mat();
-        Mat lgray = new Mat();
-        Mat leftDesc = new Mat();
-        MatOfKeyPoint leftKeypt = new MatOfKeyPoint();
-        Mat rframe = new Mat();
-        Mat rgray = new Mat();
-        Mat rightDesc = new Mat();
-        MatOfKeyPoint rightKeypt = new MatOfKeyPoint();
+        Mat R1 = new Mat();
+        Mat R2 = new Mat();
+        Mat P1 = new Mat();
+        Mat P2 = new Mat();
 
-        cams.get(0).getFrame(lframe);
-        cams.get(1).getFrame(rframe);
+        Mat R = new Mat();
+        Mat T = new Mat();
+        Mat E = new Mat();
+        Mat F = new Mat();
+        Mat Q = new Mat();
 
+        Calib3d.stereoCalibrate(left.getObjectPoints(),left.getImagePoints(),right.getImagePoints(),left.getIntrinsic(),left.getDistCoeffs(),right.getIntrinsic(),right.getDistCoeffs(),left.getSize(),R,T,E,F);
+        Calib3d.stereoRectify(left.getIntrinsic(),left.getDistCoeffs(),right.getIntrinsic(), right.getDistCoeffs(),left.getSize(),R,T,R1,R2,P1,P2,Q,0);
 
-        Imgproc.cvtColor(lframe, lgray, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.cvtColor(rframe, rgray, Imgproc.COLOR_BGR2GRAY);
+        Mat Pointcloud = new Mat();
+        Mat disp = new Mat();
+        disp =  disparity(0);
 
-        detector.detect(lgray,leftKeypt);
-        extractor.compute(lgray,leftKeypt,leftDesc);
+        Calib3d.reprojectImageTo3D(disp, Pointcloud,Q);
 
-        detector.detect(rgray,rightKeypt);
-        extractor.compute(rgray,rightKeypt,rightDesc);
+        System.out.println(Pointcloud.dump());
 
-        Mat disparity = new Mat();//frames.get(1).size(), frames.get(1).type());
-        int numDisparity = (int)(lframe.size().width/8);
-
-        System.out.println("Left\nSize:" + leftDesc.size() + " Type:" + leftDesc.type() + " Depth:" + leftDesc.depth());
-        System.out.println("Right\nSize:" + rightDesc.size() + " Type:" + rightDesc.type());
-
-        Mat l8bit = new Mat();
-        Mat r8bit = new Mat();
-        lgray.convertTo(l8bit,0);
-        rgray.convertTo(r8bit,0);
-        smatcher = StereoBM.create(96,15);
-        smatcher.compute(l8bit,r8bit,disparity);
-        //sgbmmatcher = StereoSGBM.create(2,90,15);
-        //sgbmmatcher.compute(lgray,rgray,disparity);
-
-
-
-
-        //Mat fundMat = Calib3d.findFundamentalMat();
-        //Mat output = new Mat(Diffs.size(),Diffs.type());
-        //Mat Q = Calib3d.stereoRectifyUncalibrated();
-        //Calib3d.reprojectImageTo3D(Diffs,output,);
-
-        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
-
-        return disparity;
+        return disp;
     }
 
 }

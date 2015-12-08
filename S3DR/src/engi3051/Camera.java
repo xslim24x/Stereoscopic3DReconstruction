@@ -21,7 +21,7 @@ public class Camera {
     private final int chessr = 7;
     private final int MaxCap = 5;
 
-    public VideoCapture camsource;
+    private VideoCapture camsource;
     private List<Mat> rvecs = new ArrayList<Mat>();
     private List<Mat> tvecs = new ArrayList<Mat>();
     private Mat intrinsic = new Mat(3, 3, CvType.CV_32FC1);
@@ -35,6 +35,37 @@ public class Camera {
     private int captures = 0;
     private int calibtimer = 0;
 
+    public VideoCapture getCamsource() {
+        return camsource;
+    }
+
+    public List<Mat> getRvecs() {
+        return rvecs;
+    }
+
+    public List<Mat> getTvecs() {
+        return tvecs;
+    }
+
+    public Mat getIntrinsic() {
+        return intrinsic;
+    }
+
+    public Mat getDistCoeffs() {
+        return distCoeffs;
+    }
+
+    public ArrayList<Mat> getObjectPoints() {
+        return objectPoints;
+    }
+
+    public ArrayList<Mat> getImagePoints() {
+        return imagePoints;
+    }
+
+    public Size getSize(){
+        return savedImage.size();
+    }
     /*
     this.capture = new VideoCapture();
     this.cameraActive = false;
