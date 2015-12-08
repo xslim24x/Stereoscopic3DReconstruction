@@ -10,14 +10,17 @@
   <head>
     <meta charset="UTF-8">
     <title>Stereoscopic 3D Reconstruction System</title>
-      <script src="jquery-1.11.3.min.js"></script>
+      <script src="js/jquery-1.11.3.min.js"></script>
+      <script src="js/bootstrap.js"></script>
       <script src="jquery.contextmenu.js"></script>
-      <script src="clientS3DR.js"></script>
+      <script src="js/clientS3DR.js"></script>
 
-    <link rel="stylesheet" href="clientS3DR.css" />
+    <link  rel="stylesheet" href="css/bootstrap.css" />
+    <link  rel="stylesheet" href="css/bootstrap-theme.css" />
+    <link rel="stylesheet" href="css/clientS3DR.css" />
   </head>
   <body>
-  <div class="center-block" style="margin: 2em">
+  <div class="center-block" style="margin: 2em;text-align: center;max-width: 800px">
     <h1>Stereoscopic 3D Reconstruction System</h1>
     <div>
       <img id="cam1" src="/a?cam=0">
@@ -30,7 +33,7 @@
       <div style="float: left;margin: 1em"><img src="cam2.jpg"><p align="center">Camera 2</p></div>
     </div>
     -->
-    <div style="clear:left"><button class="btn btn-primary btn-lg" >Capture</button></div>
+    <div style="text-align: justify;width: 100%;"><button class="btn btn-primary btn-lg" >Capture</button></div>
     <div style="margin: 5em;clear:left">
 
       <img src="3d.jpg">
