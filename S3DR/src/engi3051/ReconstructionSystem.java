@@ -11,10 +11,10 @@ import org.opencv.videoio.VideoCapture;
 import org.opencv.core.*;
 
 import javax.imageio.ImageIO;
+import java.awt.geom.Arc2D;
 import java.awt.image.BufferedImage;
 import java.awt.*;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import java.io.*;
 import java.sql.SQLSyntaxErrorException;
 import java.util.ArrayList;
 
@@ -98,17 +98,13 @@ public class ReconstructionSystem {
             smatcher.compute(lframe,rframe,disparity);
         }
 
-
-
-        //Mat fundMat = Calib3d.findFundamentalMat();
-        //Mat output = new Mat(Diffs.size(),Diffs.type());
-        //Mat Q = Calib3d.stereoRectifyUncalibrated();
-        //Calib3d.reprojectImageTo3D(Diffs,output,);
-
-        //normalize to increase contrast
-        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
-
         return disparity;
+    }
+
+    public Mat normalizedDisp(int type){
+        Mat disp = disparity(type);
+        Core.normalize(disp, disp, 0, 256, Core.NORM_MINMAX);
+        return disparity(type);
     }
 
     private Mat disparityMap(Mat mLeft, Mat mRight){
@@ -121,8 +117,8 @@ public class ReconstructionSystem {
         Mat leftfr = new Mat();
         Mat rightfr = new Mat();
 
-        Imgproc.cvtColor(lold, leftfr, Imgproc.COLOR_BGR2GRAY);
-        Imgproc.cvtColor(rold, rightfr, Imgproc.COLOR_BGR2GRAY);
+        Imgproc.cvtColor(lold, leftfr, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.cvtColor(rold, rightfr, Imgproc.COLOR_RGB2GRAY);
 
         // Create a new image using the size and type of the left image
         Mat disparity = new Mat(leftfr.size(), leftfr.type());
@@ -151,7 +147,7 @@ public class ReconstructionSystem {
         return disparity;
     }
 
-    public Mat reconstruct(){
+    public void reconstruct(){
         Camera left = cams.get(0);
         Camera right = cams.get(1);
 
@@ -166,18 +162,71 @@ public class ReconstructionSystem {
         Mat F = new Mat();
         Mat Q = new Mat();
 
-        Calib3d.stereoCalibrate(left.getObjectPoints(),left.getImagePoints(),right.getImagePoints(),left.getIntrinsic(),left.getDistCoeffs(),right.getIntrinsic(),right.getDistCoeffs(),left.getSize(),R,T,E,F);
-        Calib3d.stereoRectify(left.getIntrinsic(),left.getDistCoeffs(),right.getIntrinsic(), right.getDistCoeffs(),left.getSize(),R,T,R1,R2,P1,P2,Q,0);
+        //stupidly long so expanded func
+        Calib3d.stereoCalibrate(
+                left.getObjectPoints(),
+                left.getImagePoints(),
+                right.getImagePoints(),
+                left.getIntrinsic(),
+                left.getDistCoeffs(),
+                right.getIntrinsic(),
+                right.getDistCoeffs(),
+                left.getSize(),
+                R,T,E,F);
 
-        Mat Pointcloud = new Mat();
+        Calib3d.stereoRectify(
+                left.getIntrinsic(),
+                left.getDistCoeffs(),
+                right.getIntrinsic(),
+                right.getDistCoeffs(),
+                left.getSize(),
+                R,T,R1,R2,P1,P2,Q);
+
         Mat disp = new Mat();
-        disp =  disparity(0);
+        disp =  disparity(1);
 
-        Calib3d.reprojectImageTo3D(disp, Pointcloud,Q);
+        Mat points4D = new Mat();
 
-        System.out.println(Pointcloud.dump());
+//        Calib3d.triangulatePoints(
+//                P1,
+//                P2,
+//                left.getObjectPoints(),
+//                right.getObjectPoints(),
+//                points4D);
 
-        return disp;
+        Calib3d.reprojectImageTo3D(disp, points4D,Q);
+
+        Imgproc.cvtColor(disp, disp, Imgproc.COLOR_BGR2RGB);
+        CreatePointcloud(disp, points4D);
+
+        return;
+    }
+
+
+    public void CreatePointcloud(Mat disp, Mat pc){
+
+        String filename= "d:/output.txt";
+        PrintStream outstream = null; //the true will append the new data
+        try {
+            outstream = new PrintStream(new File(filename));
+
+
+            for (int i = 0; i < pc.rows(); i++){
+                for (int j = 0; j < pc.cols(); j++) {
+                    double[] pnt = new double[3];
+                    pnt = pc.get(j, i);
+//                    pnt[0] = -pnt[0];
+//                    pnt[2] = -pnt[2];
+                    String line = pnt[0] + " " + pnt[1] + " " + pnt[2] + " " + disp.get(i,j)[0] + " " + disp.get(i,j)[1] + " " + disp.get(i,j)[2];
+                    outstream.println(line);
+                    ;
+                }
+            }
+            outstream.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 }
