@@ -20,7 +20,7 @@
     <link rel="stylesheet" href="css/clientS3DR.css" />
   </head>
   <body>
-  <div class="center-block" style="margin: 2em;text-align: center;max-width: 800px">
+  <div class="center-block" style="margin: 2em;text-align: center;max-width: 1400px">
     <h1>Stereoscopic 3D Reconstruction System</h1>
     <div>
       <img id="cam1" src="/a?cam=0">

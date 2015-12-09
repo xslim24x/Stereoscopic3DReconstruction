@@ -83,13 +83,15 @@ public class S3DRServlet extends HttpServlet {
         }
         if (getdisp!=null){
             int disptype = Integer.parseInt(getdisp);
-            image = rs.mat2image(rs.disparity(disptype));
+            image = rs.mat2image(rs.normalizedDisp(disptype));
             response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
             outputStream.flush();
         }
         if (getcap!=null){
-            image = rs.mat2image(rs.reconstruct());
+            int disptype = Integer.parseInt(getcap);
+            rs.reconstruct();
+            image = rs.mat2image(rs.normalizedDisp(disptype));
             response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
             outputStream.flush();
