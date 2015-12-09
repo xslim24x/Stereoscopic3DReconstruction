@@ -17,23 +17,34 @@ import java.util.List;
  * Created by Slim on 11/6/2015.
  */
 public class Camera {
+
+    //chess board parameters for calibration
     private final int chessc = 7;
     private final int chessr = 7;
-    private final int MaxCap = 5;
+    //max number of pics to take to calibrate
+    private final int MaxCap = 12;
+    //captures to wait between shots
+    private int calibtimer = 0;
+    private boolean isCalibrated = false;
+    private MatOfPoint3f obj = new MatOfPoint3f();
 
+
+
+    //video source of cam
     private VideoCapture camsource;
+    //rotation/translation vectors -> extrinsic factors
     private List<Mat> rvecs = new ArrayList<Mat>();
     private List<Mat> tvecs = new ArrayList<Mat>();
+    //camera matrix and distortion coefficients -> intrinsic factors
     private Mat intrinsic = new Mat(3, 3, CvType.CV_32FC1);
     private Mat distCoeffs = new Mat();
-    private boolean isCalibrated = false;
+
+
     private ArrayList<Mat> imagePoints = new ArrayList<Mat>();
     private ArrayList<Mat> objectPoints = new ArrayList<Mat>();
     private Mat savedImage = new Mat();
-    private MatOfPoint3f obj = new MatOfPoint3f();
-    private MatOfPoint2f imageCorners = new MatOfPoint2f();
     private int captures = 0;
-    private int calibtimer = 0;
+
 
     public VideoCapture getCamsource() {
         return camsource;
@@ -93,6 +104,7 @@ public class Camera {
     }
 
     public boolean getFrame(Mat f){
+        MatOfPoint2f imageCorners = new MatOfPoint2f();
         boolean rdy = camsource.read(f);
         if (calibtimer > 0){
             calibtimer--;
@@ -120,7 +132,7 @@ public class Camera {
                     // save all the needed values
                     imagePoints.add(imageCorners);
                     objectPoints.add(obj);
-                    calibtimer = 30;
+                    calibtimer = 20;
                     captures++;
                 }
 
@@ -142,7 +154,6 @@ public class Camera {
         // calibrate!
         Calib3d.calibrateCamera(objectPoints, imagePoints, savedImage.size(), intrinsic, distCoeffs, rvecs, tvecs);
         this.isCalibrated = true;
-
     }
 
 
