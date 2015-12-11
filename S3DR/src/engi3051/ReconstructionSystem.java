@@ -1,5 +1,15 @@
 package engi3051;
 
+import boofcv.abst.fiducial.calib.ConfigChessboard;
+import boofcv.abst.geo.calibration.CalibrateStereoPlanar;
+import boofcv.abst.geo.calibration.CalibrationDetector;
+import boofcv.factory.calib.FactoryPlanarCalibrationTarget;
+import boofcv.factory.calib.*;
+import boofcv.gui.image.ShowImages;
+import boofcv.io.UtilIO;
+import boofcv.io.image.ConvertBufferedImage;
+import boofcv.struct.calib.StereoParameters;
+import boofcv.struct.image.ImageFloat32;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.calib3d.StereoBM;
 import org.opencv.calib3d.StereoSGBM;
@@ -37,9 +47,11 @@ public class ReconstructionSystem {
     private BufferedImage camdisc;
     //boofcv
     final int calibnum = 15;
+    int pictimer = 20;
     private boolean isCalib;//if cams change set to false
-    ArrayList<BufferedImage> rightpics;
     ArrayList<BufferedImage> leftpics;
+    ArrayList<BufferedImage> rightpics;
+    private StereoParameters stereoCalib;
 
     //constructor
     public ReconstructionSystem(){
@@ -57,6 +69,8 @@ public class ReconstructionSystem {
         //sgbmmatcher = StereoSGBM.create(2,2,1);
 
         initCams();
+        leftpics = new ArrayList<BufferedImage>();
+        rightpics = new ArrayList<BufferedImage>();
         left = 0;
         right = 1;
         isCalib = false;
@@ -70,25 +84,65 @@ public class ReconstructionSystem {
         //act as a messenger to user
         //TODO create timer for overlayed text
         //coordinate calibration
+        if (pictimer>0)
+                pictimer--;
         Mat l = new Mat();
         Mat r = new Mat();
         boolean chessinleft = frameread(left, l);
         boolean chessinright = frameread(right, r);
         BufferedImage iml = mat2image(l);
         BufferedImage imr = mat2image(r);
-        try {
-            if (chessinleft && chessinright){
-                //TODO add message with count
-                if (!isCalib){
-                    leftpics.add(iml);
-                    rightpics.add(imr);
+        if (chessinleft && chessinright){
+            //TODO add message with count
+            if (!isCalib && (pictimer == 0) && (leftpics.size() < calibnum)){
+                Mat lraw = new Mat();
+                Mat rraw = new Mat();
+                cams.get(left).rawFrame(lraw);
+                cams.get(right).rawFrame(rraw);
+
+                leftpics.add(mat2image(lraw));
+                rightpics.add(mat2image(rraw));
+                System.out.println("Calib pic:" + leftpics.size());
+                pictimer=20;
+                if (leftpics.size() == calibnum){
+                    boofCalib();
                 }
             }
+
         }
-        catch (Exception e){
-            System.out.println("Failed getting both frames in stereo");
-        }
+
         return joinImages(iml,imr);
+    }
+
+    private void boofCalib(){
+
+        CalibrationDetector detector = FactoryPlanarCalibrationTarget.detectorChessboard(new ConfigChessboard(5,7, 30));
+        CalibrateStereoPlanar calibratorAlg = new CalibrateStereoPlanar(detector);
+        calibratorAlg.configure(true, 2, false);
+
+        for (int i =0; i < leftpics.size(); i++){
+            ImageFloat32 imageLeft = ConvertBufferedImage.convertFrom(leftpics.get(i),(ImageFloat32)null);
+            ImageFloat32 imageRight = ConvertBufferedImage.convertFrom(rightpics.get(i),(ImageFloat32)null);
+
+            if( !calibratorAlg.addPair(imageLeft, imageRight) )
+                System.out.println("Failed to detect target in pair");
+        }
+        stereoCalib = calibratorAlg.process();
+
+        // TODO show accuracy
+        // print out information on its accuracy and errors
+        calibratorAlg.printStatistics();
+        // save results to a file and print out
+        UtilIO.saveXML(stereoCalib, "d:/stereo.xml");
+        stereoCalib.print();
+
+        isCalib = true;
+        cams.get(left).setIsCalibrated(true);
+        cams.get(right).setIsCalibrated(true);
+    }
+
+    private void boofDisp(){
+
     }
 
     public BufferedImage mat2image(Mat f) throws IOException {

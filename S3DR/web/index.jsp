@@ -26,7 +26,7 @@
   <div class="center-block" style="margin: 2em;text-align: center;">
     <h1>Stereoscopic 3D Reconstruction System</h1>
     <div id="stereofeed">
-      <img id="camfeed" src="/a?cam=stereo" width="80%" height="auto">
+      <img id="camfeed" src="/a?cam=stereo" width="80%">
       <!--<img src="/a?cam=2">  -->
       <br><br>
     </div>
@@ -70,7 +70,7 @@
     var _entities = [];
 
     initGL();
-    loadstuff();
+    //loadstuff();
     //ply();
     animate();
 

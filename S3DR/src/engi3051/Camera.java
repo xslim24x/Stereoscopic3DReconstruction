@@ -107,6 +107,10 @@ public class Camera {
         }
     }
 
+    public void rawFrame(Mat f){
+        camsource.read(f);
+    }
+
     public boolean getFrame(Mat f){
         boolean found = false;
         MatOfPoint2f imageCorners = new MatOfPoint2f();
@@ -133,7 +137,7 @@ public class Camera {
 
                 if (calibtimer == 0 && captures < MaxCap)
                 {
-                    System.out.println("Calibrating");
+                    //System.out.println("Calibrating");
                     // save all the needed values
                     imagePoints.add(imageCorners);
                     objectPoints.add(obj);
@@ -144,7 +148,7 @@ public class Camera {
                 // reach the correct number of images needed for the calibration
                 if (captures == MaxCap && !isCalibrated)
                 {
-                    System.out.println("Calibrated");
+                    //System.out.println("Calibrated");
                     //calibrateCam();
                 }
 
