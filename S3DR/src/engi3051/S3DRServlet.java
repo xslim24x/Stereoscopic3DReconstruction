@@ -70,6 +70,9 @@ public class S3DRServlet extends HttpServlet {
                 response.setContentType("image/jpeg");
                 ImageIO.write(image,"jpeg",outputStream);
             }
+            else if (getcam.contains("disp")){
+                rs.boofDisp();
+            }
             else{
                 try{
                     int camreq = Integer.parseInt(getcam);

@@ -1,15 +1,30 @@
 package engi3051;
 
+import boofcv.abst.distort.FDistort;
+import boofcv.abst.feature.disparity.StereoDisparity;
 import boofcv.abst.fiducial.calib.ConfigChessboard;
 import boofcv.abst.geo.calibration.CalibrateStereoPlanar;
 import boofcv.abst.geo.calibration.CalibrationDetector;
+import boofcv.alg.distort.ImageDistort;
+import boofcv.alg.geo.PerspectiveOps;
+import boofcv.alg.geo.RectifyImageOps;
+import boofcv.alg.geo.rectify.RectifyCalibrated;
+import boofcv.core.image.border.BorderType;
 import boofcv.factory.calib.FactoryPlanarCalibrationTarget;
-import boofcv.factory.calib.*;
+import boofcv.factory.feature.disparity.DisparityAlgorithms;
+import boofcv.factory.feature.disparity.FactoryStereoDisparity;
+import boofcv.gui.d3.PointCloudViewer;
 import boofcv.gui.image.ShowImages;
+import boofcv.gui.image.VisualizeImageData;
 import boofcv.io.UtilIO;
 import boofcv.io.image.ConvertBufferedImage;
 import boofcv.struct.calib.StereoParameters;
 import boofcv.struct.image.ImageFloat32;
+import boofcv.struct.image.ImageUInt8;
+import georegression.geometry.GeometryMath_F64;
+import georegression.struct.point.Point3D_F64;
+import georegression.struct.se.Se3_F64;
+import org.ejml.data.DenseMatrix64F;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.calib3d.StereoBM;
 import org.opencv.calib3d.StereoSGBM;
@@ -76,6 +91,9 @@ public class ReconstructionSystem {
         isCalib = false;
     }
 
+    //TODO Add calibration reading
+    //StereoParameters param = UtilIO.loadXML(calibDir , "stereo.xml");
+
     public boolean frameread(int c, Mat f){
         return cams.get(c).getFrame(f);
     }
@@ -141,9 +159,145 @@ public class ReconstructionSystem {
         cams.get(right).setIsCalibrated(true);
     }
 
-    private void boofDisp(){
+    public void boofDisp() throws IOException {
+        double scale = 1;
+
+        int minDisparity = 0;
+        int maxDisparity = 240;
+        int rangeDisparity = maxDisparity-minDisparity;
+
+        Mat lraw = new Mat();
+        Mat rraw = new Mat();
+        cams.get(left).rawFrame(lraw);
+        cams.get(right).rawFrame(rraw);
+
+        //testing purposes
+        StereoParameters stereoCalib = UtilIO.loadXML("d:/stereo.xml");
+
+        ImageUInt8 distLeft = ConvertBufferedImage.convertFrom(mat2image(lraw), (ImageUInt8) null);
+        ImageUInt8 distRight = ConvertBufferedImage.convertFrom(mat2image(rraw),(ImageUInt8)null);
+
+        // re-scale input images
+        ImageUInt8 scaledLeft = new ImageUInt8((int)(distLeft.width*scale),(int)(distLeft.height*scale));
+        ImageUInt8 scaledRight = new ImageUInt8((int)(distRight.width*scale),(int)(distRight.height*scale));
+
+        new FDistort(distLeft,scaledLeft).scaleExt().apply();
+        new FDistort(distRight,scaledRight).scaleExt().apply();
+
+        // Don't forget to adjust camera parameters for the change in scale!
+        PerspectiveOps.scaleIntrinsic(stereoCalib.left, scale);
+        PerspectiveOps.scaleIntrinsic(stereoCalib.right,scale);
+
+        // rectify images and compute disparity
+        ImageUInt8 rectLeft = new ImageUInt8(scaledLeft.width,scaledLeft.height);
+        ImageUInt8 rectRight = new ImageUInt8(scaledRight.width,scaledRight.height);
+
+        RectifyCalibrated rectAlg = rectify(scaledLeft,scaledRight,stereoCalib,rectLeft,rectRight);
+
+        //		ImageUInt8 disparity = ExampleStereoDisparity.denseDisparity(rectLeft, rectRight, 3,minDisparity, maxDisparity);
+        ImageFloat32 disparity = denseDisparitySubpixel(rectLeft, rectRight, 3, minDisparity, maxDisparity);
+
+        // ------------- Convert disparity image into a 3D point cloud
+
+        // The point cloud will be in the left cameras reference frame
+        DenseMatrix64F rectK = rectAlg.getCalibrationMatrix();
+        DenseMatrix64F rectR = rectAlg.getRectifiedRotation();
+
+        // used to display the point cloud
+        PointCloudViewer viewer = new PointCloudViewer(rectK, 10);
+        viewer.setPreferredSize(new Dimension(rectLeft.width,rectLeft.height));
+
+        // extract intrinsic parameters from rectified camera
+        double baseline = stereoCalib.getBaseline();
+        double fx = rectK.get(0,0);
+        double fy = rectK.get(1,1);
+        double cx = rectK.get(0,2);
+        double cy = rectK.get(1,2);
+
+        // Iterate through each pixel in disparity image and compute its 3D coordinate
+        Point3D_F64 pointRect = new Point3D_F64();
+        Point3D_F64 pointLeft = new Point3D_F64();
+        for( int y = 0; y < disparity.height; y++ ) {
+            for( int x = 0; x < disparity.width; x++ ) {
+                double d = disparity.unsafe_get(x,y) + minDisparity;
+
+                // skip over pixels were no correspondence was found
+                if( d >= rangeDisparity )
+                    continue;
+
+                // Coordinate in rectified camera frame
+                pointRect.z = baseline*fx/d;
+                pointRect.x = pointRect.z*(x - cx)/fx;
+                pointRect.y = pointRect.z*(y - cy)/fy;
+
+                // rotate into the original left camera frame
+                GeometryMath_F64.multTran(rectR, pointRect, pointLeft);
+
+                // add pixel to the view for display purposes and sets its gray scale value
+                int v = rectLeft.unsafe_get(x, y);
+                viewer.addPoint(pointLeft.x, pointLeft.y, pointLeft.z, v << 16 | v << 8 | v);
+            }
+        }
+
+        // display the results.  Click and drag to change point cloud camera
+        BufferedImage visualized = VisualizeImageData.disparity(disparity, null,minDisparity, maxDisparity,0);
 
     }
+
+
+
+    public static RectifyCalibrated rectify( ImageUInt8 origLeft , ImageUInt8 origRight ,
+                                             StereoParameters param ,
+                                             ImageUInt8 rectLeft , ImageUInt8 rectRight )
+    {
+        // Compute rectification
+        RectifyCalibrated rectifyAlg = RectifyImageOps.createCalibrated();
+        Se3_F64 leftToRight = param.getRightToLeft().invert(null);
+
+        // original camera calibration matrices
+        DenseMatrix64F K1 = PerspectiveOps.calibrationMatrix(param.getLeft(), null);
+        DenseMatrix64F K2 = PerspectiveOps.calibrationMatrix(param.getRight(), null);
+
+        rectifyAlg.process(K1,new Se3_F64(),K2,leftToRight);
+
+        // rectification matrix for each image
+        DenseMatrix64F rect1 = rectifyAlg.getRect1();
+        DenseMatrix64F rect2 = rectifyAlg.getRect2();
+        // New calibration matrix,
+        DenseMatrix64F rectK = rectifyAlg.getCalibrationMatrix();
+
+        // Adjust the rectification to make the view area more useful
+        RectifyImageOps.allInsideLeft(param.left, rect1, rect2, rectK);
+
+        // undistorted and rectify images
+        ImageDistort<ImageUInt8,ImageUInt8> imageDistortLeft =
+                RectifyImageOps.rectifyImage(param.getLeft(), rect1, BorderType.SKIP, ImageUInt8.class);
+        ImageDistort<ImageUInt8,ImageUInt8> imageDistortRight =
+                RectifyImageOps.rectifyImage(param.getRight(), rect2, BorderType.SKIP, ImageUInt8.class);
+
+        imageDistortLeft.apply(origLeft, rectLeft);
+        imageDistortRight.apply(origRight, rectRight);
+
+        return rectifyAlg;
+    }
+
+    public static ImageFloat32 denseDisparitySubpixel( ImageUInt8 rectLeft , ImageUInt8 rectRight ,
+                                                       int regionSize ,
+                                                       int minDisparity , int maxDisparity )
+    {
+        // A slower but more accuracy algorithm is selected
+        // All of these parameters should be turned
+        StereoDisparity<ImageUInt8,ImageFloat32> disparityAlg =
+                FactoryStereoDisparity.regionSubpixelWta(DisparityAlgorithms.RECT,
+                        minDisparity, maxDisparity, regionSize, regionSize, 25, 1, 0.2, ImageUInt8.class);
+
+        // process and return the results
+        disparityAlg.process(rectLeft,rectRight);
+
+        return disparityAlg.getDisparity();
+    }
+
+
 
     public BufferedImage mat2image(Mat f) throws IOException {
         BufferedImage i;
