@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="com.thetransactioncompany:cors-filter:2.5" type="repository">
+    <properties maven-id="com.thetransactioncompany:cors-filter:2.5" />
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/cors-filter-2.5.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/java-property-utils-1.9.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/javax.servlet-api-3.0.1.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

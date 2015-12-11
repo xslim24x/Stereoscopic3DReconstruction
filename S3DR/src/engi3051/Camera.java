@@ -19,14 +19,15 @@ import java.util.List;
 public class Camera {
 
     //chess board parameters for calibration
-    private final int chessc = 7;
-    private final int chessr = 7;
+    private final int chessc = 6;
+    private final int chessr = 4;
     //max number of pics to take to calibrate
     private final int MaxCap = 12;
     //captures to wait between shots
     private int calibtimer = 0;
     private boolean isCalibrated = false;
     private MatOfPoint3f obj = new MatOfPoint3f();
+    private ReconstructionSystem rs;
 
 
 
@@ -77,6 +78,8 @@ public class Camera {
     public Size getSize(){
         return savedImage.size();
     }
+
+    public void setIsCalibrated(boolean c){this.isCalibrated=c;}
     /*
     this.capture = new VideoCapture();
     this.cameraActive = false;
@@ -91,9 +94,10 @@ public class Camera {
     this.isCalibrated = false;
     */
 
-    public Camera(VideoCapture c){
+    public Camera(VideoCapture c, ReconstructionSystem r){
         //CaptureDeviceManager.getDeviceList(null);
         camsource = c;
+        rs = r;
         // init needed variables according to OpenCV docs
         intrinsic.put(0, 0, 1);
         intrinsic.put(1, 1, 1);
@@ -103,18 +107,23 @@ public class Camera {
         }
     }
 
+    public void rawFrame(Mat f){
+        camsource.read(f);
+    }
+
     public boolean getFrame(Mat f){
+        boolean found = false;
         MatOfPoint2f imageCorners = new MatOfPoint2f();
         boolean rdy = camsource.read(f);
         if (calibtimer > 0){
             calibtimer--;
         }
-
+        //leaving here to show chess board
         if (!isCalibrated){
             Mat gray = new Mat();
             Imgproc.cvtColor(f, gray, Imgproc.COLOR_BGR2GRAY);
             Size boardSize = new Size(chessc,chessr);
-            boolean found = Calib3d.findChessboardCorners(gray, boardSize, imageCorners,
+            found = Calib3d.findChessboardCorners(gray, boardSize, imageCorners,
                     Calib3d.CALIB_CB_ADAPTIVE_THRESH + Calib3d.CALIB_CB_NORMALIZE_IMAGE + Calib3d.CALIB_CB_FAST_CHECK);
             if (found)
             {
@@ -128,7 +137,7 @@ public class Camera {
 
                 if (calibtimer == 0 && captures < MaxCap)
                 {
-                    System.out.println("Calibrating");
+                    //System.out.println("Calibrating");
                     // save all the needed values
                     imagePoints.add(imageCorners);
                     objectPoints.add(obj);
@@ -139,14 +148,14 @@ public class Camera {
                 // reach the correct number of images needed for the calibration
                 if (captures == MaxCap && !isCalibrated)
                 {
-                    System.out.println("Calibrated");
-                    calibrateCam();
+                    //System.out.println("Calibrated");
+                    //calibrateCam();
                 }
 
             }
 
         }
-        return rdy;
+        return found;
     }
 
     public void calibrateCam()

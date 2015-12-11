@@ -1,11 +1,19 @@
 /**
  * Created by Slim on 11/17/2015.
  */
+var camtimer;
 
+$( "#capbtn" ).click(function() {
+    clearTimeout(camtimer);
+    $("#expbtn").enable();
+    //TODO ajax get output links, send 3dmodel and obj url
+    var request = new XMLHttpRequest();
+    request.open("get", "./a", false);
+});
 
 function refresh(cam)
 {
-    var timeout = 200;
+    var timeout = 100;
     (function startRefresh()
     {
         var address
@@ -15,15 +23,20 @@ function refresh(cam)
         else
             address = cam.src;
         cam.src = address+"&time="+new Date().getTime();
-        setTimeout(startRefresh,timeout);
+        camtimer = setTimeout(startRefresh,timeout);
+
     })();
 }
 
 window.onload = function()
 {
     //TODO: detect available sources, add left, right choice
-    var cam1 = document.getElementById('cam1');
-    var cam2 = document.getElementById('cam2');
-    refresh(cam1);
-    refresh(cam2);
+    var cam = document.getElementById('camfeed');
+    refresh(cam);
+}
+
+
+function ClickFile(){
+    clearTimeout(camtimer);
+    $('#files').click();
 }

@@ -49,15 +49,18 @@ public class S3DRServlet extends HttpServlet {
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("text/html");
+        response.setContentType("application/json");
+        PrintWriter out = response.getWriter();
+        String getaction = request.getParameter("action");
+        if (getaction.contains("capture")){
+            rs.boofDisp();
+        }
 
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-        if (rs.cams.size()<2){
-            return;
-        }
+
         //PrintWriter out = response.getWriter();
         //response.setContentType("text/html");
         response.setContentType("image/jpeg");
@@ -67,24 +70,30 @@ public class S3DRServlet extends HttpServlet {
         String getdisp = request.getParameter("disp");
         String getcap = request.getParameter("cap");
         if (getcam!=null){
-            int camreq = Integer.parseInt(getcam);
-            if(camreq <= rs.cams.size()){
-                Mat f = new Mat();
-                while (true) {
-                    if (rs.frameread(camreq,f)) {
-                        image = rs.mat2image(f);
-                        response.setContentType("image/jpeg");
-                        ImageIO.write(image,"jpeg",outputStream);
-                        outputStream.flush();
-                        break;
-                    }
+            if (getcam.contains("stereo")){
+                image = rs.StereoCam();
+                response.setContentType("image/jpeg");
+                ImageIO.write(image,"jpeg",outputStream);
+            }
+            else if (getcam.contains("disp")){
+                rs.boofDisp();
+            }
+            else{
+                try{
+                    int camreq = Integer.parseInt(getcam);
+                    image = rs.returnFeed(camreq);
+                    ImageIO.write(image,"jpeg",outputStream);
+                }
+                catch (NumberFormatException e){
+
                 }
             }
+            outputStream.flush();
+
         }
         if (getdisp!=null){
             int disptype = Integer.parseInt(getdisp);
             image = rs.mat2image(rs.normalizedDisp(disptype));
-            response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
             outputStream.flush();
         }
@@ -92,7 +101,6 @@ public class S3DRServlet extends HttpServlet {
             int disptype = Integer.parseInt(getcap);
             rs.reconstruct();
             image = rs.mat2image(rs.normalizedDisp(disptype));
-            response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
             outputStream.flush();
         }
