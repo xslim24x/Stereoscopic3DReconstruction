@@ -1,11 +1,11 @@
 /**
  * Created by Slim on 11/17/2015.
  */
-
+var mytimers = [];
 
 function refresh(cam)
 {
-    var timeout = 200;
+    var timeout = 300;
     (function startRefresh()
     {
         var address
@@ -15,15 +15,22 @@ function refresh(cam)
         else
             address = cam.src;
         cam.src = address+"&time="+new Date().getTime();
-        setTimeout(startRefresh,timeout);
+        var temp = setTimeout(startRefresh,timeout);
+        mytimers.push(temp);
     })();
 }
 
 window.onload = function()
 {
     //TODO: detect available sources, add left, right choice
-    var cam1 = document.getElementById('cam1');
-    var cam2 = document.getElementById('cam2');
-    refresh(cam1);
-    refresh(cam2);
+    var leftcam = document.getElementById('lcam');
+    var rightcam = document.getElementById('rcam');
+    refresh(leftcam);
+    refresh(rightcam);
+}
+
+function StopCams(){
+    for (i = 0;i<mytimers.length;i++){
+        clearTimeout(mytimers[i]);
+    }
 }

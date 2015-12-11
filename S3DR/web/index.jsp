@@ -14,7 +14,7 @@
     <script src="js/jquery-1.11.3.min.js"></script>
     <script src="js/bootstrap.js"></script>
     <script src="jquery.contextmenu.js"></script>
-    <script src="js/three.js"></script>
+
     <script src="js/PLYLoader.js"></script>
     <script src="js/clientS3DR.js"></script>
     <link  rel="stylesheet" href="css/bootstrap.css" >
@@ -25,8 +25,8 @@
   <div class="center-block" style="margin: 2em;text-align: center;">
     <h1>Stereoscopic 3D Reconstruction System</h1>
     <div id="stereofeed">
-      <img id="cam1" src="/a?cam=0" width="40%">
-      <img id="cam2" src="/a?cam=1" width="40%">
+      <img id="lcam" src="/a?cam=0" width="35%" height="auto">
+      <img id="rcam" src="/a?cam=1" width="35%" height="auto">
       <!--<img src="/a?cam=2">  -->
       <br><br>
     </div>
@@ -37,13 +37,12 @@
     </div>
     -->
     <div class="btn-toolbar" style="float:right;margin-right:20%;">
-      <button class="btn btn-success btn-lg"><span class="glyphicon glyphicon-import"></span> Import</button>
-      <button class="btn btn-success btn-lg"><span class="glyphicon glyphicon-export"></span> Export</button>
+      <button class="btn btn-success btn-lg" onclick="StopCams();"><span class="glyphicon glyphicon-import"></span> Import</button>
+      <button disabled="true" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-export"></span> Export</button>
       <button class="btn btn-primary btn-lg" ><span class="glyphicon glyphicon-camera"></span> Capture</button>
     </div>
     <div style="margin: 5em;clear:left">
-
-      <div class="gldiv" id="GLDiv" />
+      <div id="3DArea" />
     </div>
     <div class="hide" id="rmenu">
       <ul>
@@ -64,17 +63,24 @@
 
     </div>
   </div>
-
+  <script src="js/three.js"></script>
   <script type="text/javascript">
 
     var _camera, _scene, _renderer, _trackball, _projector;
 
     var _entities = [];
 
-    initUI();
     initGL();
+    //loadstuff();
     animate();
 
+    function loadstuff() {
+      var request = new XMLHttpRequest();
+      request.open("GET", "./arbor.json", false);
+      request.send(null)
+      var my_JSON_object = JSON.parse(request.responseText);
+      createScene(my_JSON_object);
+    }
 
 
     function ConvertClr(clr) {
@@ -216,12 +222,12 @@
 
       var animateWithWebGL = hasWebGL();
 
-      var container = document.getElementById("GLDiv");
+      var container = document.getElementById("3DArea");
 
       _scene = new THREE.Scene();
 
-      var width = container.clientWidth - 35;
-      var height = 700;
+      var width = 600;
+      var height = 400;
 
       _camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 500);
 
@@ -273,18 +279,18 @@
 
       _renderer = new THREE.WebGLRenderer();  //CanvasRenderer();
       _renderer.setSize(width, height);
-
       _projector = new THREE.Projector();
 
       container.appendChild(_renderer.domElement);
-
+      container.firstElementChild.setAttribute("id","3Drend");
       document.addEventListener('mousewheel', onDocumentMouseWheel, false);
 
       _renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
 
-      var container = document.getElementById("GLDiv");
+      var container = document.getElementById("3DArea");
     }
 
+    //zoom
     function onDocumentMouseWheel(event) {
       _camera.fov -= event.wheelDeltaY * 0.05;
 
@@ -301,11 +307,12 @@
       render();
     }
 
+    //rotate
     function onDocumentMouseDown(event) {
 
       event.preventDefault();
 
-      var container = document.getElementById("GLDiv");
+      var container = document.getElementById("3DArea");
 
       var mouseX = (event.clientX / window.innerWidth) * 2 - 1;
       var mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
