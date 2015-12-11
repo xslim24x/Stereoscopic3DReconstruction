@@ -3,12 +3,14 @@ package engi3051;
 import org.opencv.calib3d.Calib3d;
 import org.opencv.calib3d.StereoBM;
 import org.opencv.calib3d.StereoSGBM;
+import org.opencv.core.Point;
 import org.opencv.features2d.DescriptorExtractor;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.core.*;
+
 
 import javax.imageio.ImageIO;
 import java.awt.geom.Arc2D;
@@ -21,17 +23,30 @@ import java.util.ArrayList;
 /**
  * Created by Slim on 11/17/2015.
  */
+
+
+
 public class ReconstructionSystem {
-
+    //initial values of left/ right
     private int left =0,right=1;
-    public ArrayList<Camera> cams = new ArrayList<Camera>();
+    private ArrayList<Camera> cams = new ArrayList<Camera>();
 
+    //openCV
     private FeatureDetector detector;
     private DescriptorExtractor extractor;
     private StereoBM smatcher;
     private StereoSGBM sgbmmatcher;
-
+    private BufferedImage camdisc;
+    //constructor
     public ReconstructionSystem(){
+        Mat i = new Mat(400,600, CvType.CV_8UC3);
+        Imgproc.putText(i,"Camera Offline", new Point(20,40),3,1,new Scalar(224,224,0),3);
+        try {
+            camdisc = mat2image(i);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         detector = FeatureDetector.create(FeatureDetector.FAST);
         extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
         //smatcher = StereoBM.create();
@@ -39,6 +54,7 @@ public class ReconstructionSystem {
 
         initCams();
     }
+
     public boolean frameread(int c, Mat f){
         return cams.get(c).getFrame(f);
     }
@@ -56,11 +72,29 @@ public class ReconstructionSystem {
         //Imgcodecs.imwrite("camera"+cams.indexOf(c)+".jpg",f);
     }
 
+    public BufferedImage returnFeed(int cam) throws IOException {
+        if (cam>=cams.size()){
+            return camdisc;
+        }
+        System.out.println(cams.size());
+        Mat i = new Mat();
+        try{
+            frameread(cam,i);
+        }
+        catch (Exception e){
+            //works to remove problematic false cameras
+            cams.remove(cams.size()-1);
+            return camdisc;
+        }
+
+
+        return mat2image(i);
+    }
 
     public void initCams(){
 
-        // max 8 capture devices are connected
-        for (int i = 0;i<8;i++){
+        // max 12 capture devices are connected -> this is opening more cameras than expected..
+        for (int i = 0;i<12;i++){
             VideoCapture c = new VideoCapture(i);
             if (c.isOpened())
                 cams.add(new Camera(c));
