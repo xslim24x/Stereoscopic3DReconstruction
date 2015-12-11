@@ -3,9 +3,17 @@
  */
 var camtimer;
 
+$( "#capbtn" ).click(function() {
+    clearTimeout(camtimer);
+    $("#expbtn").enable();
+    //TODO ajax get output links, send 3dmodel and obj url
+    var request = new XMLHttpRequest();
+    request.open("get", "./a", false);
+});
+
 function refresh(cam)
 {
-    var timeout = 150;
+    var timeout = 100;
     (function startRefresh()
     {
         var address
@@ -27,8 +35,8 @@ window.onload = function()
     refresh(cam);
 }
 
-function StopCams(){
-    for (i = 0;i<mytimers.length;i++){
-        clearTimeout(mytimers[i]);
-    }
+
+function ClickFile(){
+    clearTimeout(camtimer);
+    $('#files').click();
 }

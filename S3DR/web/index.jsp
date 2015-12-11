@@ -17,6 +17,7 @@
     <script src="js/three.min.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/PLYLoader.js"></script>
+    <script src="js/OBJLoader.js"></script>
     <script src="js/clientS3DR.js"></script>
     <link  rel="stylesheet" href="css/bootstrap.css" >
     <link  rel="stylesheet" href="css/bootstrap-theme.css" >
@@ -25,10 +26,12 @@
   <body>
   <div class="center-block" style="margin: 2em;text-align: center;">
     <h1>Stereoscopic 3D Reconstruction System</h1>
-    <div id="stereofeed">
-      <img id="camfeed" src="/a?cam=stereo" width="80%">
-      <!--<img src="/a?cam=2">  -->
-      <br><br>
+    <div class="btn-toolbar" style="float:right;margin-right:20%;">
+      <!-- <input type="file" class="show" id="files" name="file" /> -->
+
+      <button id="impbtn" class="btn btn-success btn-lg" onclick="ClickFile();"><span class="glyphicon glyphicon-import"></span> Import</button>
+      <button id="expbtn" type="submit" disabled="true" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-export"></span> Export</button>
+      <button id="capbtn" class="btn btn-primary btn-lg" ><span class="glyphicon glyphicon-camera"></span> Capture</button>
     </div>
     <!--
     <div class="pull-left">
@@ -36,10 +39,10 @@
       <div style="float: left;margin: 1em"><img src="cam2.jpg"><p align="center">Camera 2</p></div>
     </div>
     -->
-    <div class="btn-toolbar" style="float:right;margin-right:20%;">
-      <button class="btn btn-success btn-lg" onclick="StopCams();"><span class="glyphicon glyphicon-import"></span> Import</button>
-      <button disabled="true" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-export"></span> Export</button>
-      <button class="btn btn-primary btn-lg" ><span class="glyphicon glyphicon-camera"></span> Capture</button>
+    <div id="stereofeed">
+      <img id="camfeed" src="/a?cam=stereo" width="80%">
+      <!--<img src="/a?cam=2">  -->
+      <br><br>
     </div>
     <div style="margin: 5em;clear:left">
       <div id="3DArea" />
@@ -63,6 +66,8 @@
 
     </div>
   </div>
+
+
   <script type="text/javascript">
 
     var _camera, _scene, _renderer, _trackball, _projector;
@@ -72,8 +77,18 @@
     initGL();
     //loadstuff();
     //ply();
+    //loadface();
     animate();
 
+    function loadface(){
+      var loader = new THREE.OBJLoader( );
+      loader.load( 'cow.obj', function ( object ) {
+
+        object.position.y = - 80;
+        createScene( object );
+
+      } );
+    }
 
     function loadstuff() {
       var request = new XMLHttpRequest();
@@ -95,7 +110,8 @@
 
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        _scene.add( mesh );
+        createScene(mesh);
+        //_scene.add( mesh );
 
       } );
     }
@@ -299,6 +315,7 @@
 
       _renderer = new THREE.WebGLRenderer();  //CanvasRenderer();
       _renderer.setSize(width, height);
+      _renderer.setClearColor(0x000000, 0);
       _projector = new THREE.Projector();
 
       container.appendChild(_renderer.domElement);

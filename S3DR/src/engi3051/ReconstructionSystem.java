@@ -5,6 +5,7 @@ import boofcv.abst.feature.disparity.StereoDisparity;
 import boofcv.abst.fiducial.calib.ConfigChessboard;
 import boofcv.abst.geo.calibration.CalibrateStereoPlanar;
 import boofcv.abst.geo.calibration.CalibrationDetector;
+import boofcv.alg.depth.VisualDepthOps;
 import boofcv.alg.distort.ImageDistort;
 import boofcv.alg.geo.PerspectiveOps;
 import boofcv.alg.geo.RectifyImageOps;
@@ -106,10 +107,11 @@ public class ReconstructionSystem {
                 pictimer--;
         Mat l = new Mat();
         Mat r = new Mat();
-        boolean chessinleft = frameread(left, l);
-        boolean chessinright = frameread(right, r);
-        BufferedImage iml = mat2image(l);
-        BufferedImage imr = mat2image(r);
+        try{
+            boolean chessinleft = frameread(left, l);
+            boolean chessinright = frameread(right, r);
+            BufferedImage iml = mat2image(l);
+            BufferedImage imr = mat2image(r);
         if (chessinleft && chessinright){
             //TODO add message with count
             if (!isCalib && (pictimer == 0) && (leftpics.size() < calibnum)){
@@ -128,8 +130,13 @@ public class ReconstructionSystem {
             }
 
         }
+        }
+        catch (Exception e){
 
-        return joinImages(iml,imr);
+        }
+        finally {
+            return joinImages(returnFeed(left),returnFeed(right));
+        }
     }
 
     private void boofCalib(){
@@ -160,7 +167,7 @@ public class ReconstructionSystem {
     }
 
     public void boofDisp() throws IOException {
-        double scale = 1;
+        double scale = 0.5;
 
         int minDisparity = 0;
         int maxDisparity = 240;
@@ -194,8 +201,15 @@ public class ReconstructionSystem {
 
         RectifyCalibrated rectAlg = rectify(scaledLeft,scaledRight,stereoCalib,rectLeft,rectRight);
 
-        //		ImageUInt8 disparity = ExampleStereoDisparity.denseDisparity(rectLeft, rectRight, 3,minDisparity, maxDisparity);
-        ImageFloat32 disparity = denseDisparitySubpixel(rectLeft, rectRight, 3, minDisparity, maxDisparity);
+
+        StereoDisparity<ImageUInt8,ImageFloat32> disparityAlg =
+                FactoryStereoDisparity.regionSubpixelWta(DisparityAlgorithms.RECT,
+                        minDisparity, maxDisparity, 3, 3, 25, 1, 0.2, ImageUInt8.class);
+
+        // process and return the results
+        disparityAlg.process(rectLeft,rectRight);
+
+        ImageFloat32 disparity = disparityAlg.getDisparity();
 
         // ------------- Convert disparity image into a 3D point cloud
 
@@ -205,6 +219,7 @@ public class ReconstructionSystem {
 
         // used to display the point cloud
         PointCloudViewer viewer = new PointCloudViewer(rectK, 10);
+
         viewer.setPreferredSize(new Dimension(rectLeft.width,rectLeft.height));
 
         // extract intrinsic parameters from rectified camera
@@ -217,6 +232,10 @@ public class ReconstructionSystem {
         // Iterate through each pixel in disparity image and compute its 3D coordinate
         Point3D_F64 pointRect = new Point3D_F64();
         Point3D_F64 pointLeft = new Point3D_F64();
+
+        ArrayList<String>cloudexp = new ArrayList<String>();
+        String line;
+
         for( int y = 0; y < disparity.height; y++ ) {
             for( int x = 0; x < disparity.width; x++ ) {
                 double d = disparity.unsafe_get(x,y) + minDisparity;
@@ -236,12 +255,45 @@ public class ReconstructionSystem {
                 // add pixel to the view for display purposes and sets its gray scale value
                 int v = rectLeft.unsafe_get(x, y);
                 viewer.addPoint(pointLeft.x, pointLeft.y, pointLeft.z, v << 16 | v << 8 | v);
+                double grayv = ((double)v)/255;
+                line = pointLeft.x + " " + pointLeft.y + " " + pointLeft.z + " " + grayv;
+                cloudexp.add(line);
             }
         }
 
         // display the results.  Click and drag to change point cloud camera
         BufferedImage visualized = VisualizeImageData.disparity(disparity, null,minDisparity, maxDisparity,0);
+        ShowImages.showWindow(viewer,"point");
+        ShowImages.showWindow(rectLeft,"rect left");
+        //saveCloud(cloudexp);
 
+    }
+
+    private void saveCloud(ArrayList<String> lines){
+
+        PrintWriter pw = null;
+        try {
+            pw = new PrintWriter(new FileOutputStream(new File("d:/pointcloud.obj"),false));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        /*
+        pw.println("# .PCD v.7 - Point Cloud Data file format");
+        pw.println("VERSION .7");
+        pw.println("FIELDS x y z rgb");
+        pw.println("SIZE 4 4 4 4");
+        pw.println("TYPE F F F F");
+        pw.println("COUNT 1 1 1 1");
+        pw.println("WIDTH "+lines.size());
+        pw.println("HEIGHT 1");
+        pw.println("VIEWPOINT 0 0 0 1 0 0 0");
+        pw.println("POINTS "+lines.size());
+        pw.println("DATA ascii");*/
+
+        for (String s:lines){
+            pw.println("v "+ s);
+        }
+        pw.close();
     }
 
 
@@ -281,21 +333,7 @@ public class ReconstructionSystem {
         return rectifyAlg;
     }
 
-    public static ImageFloat32 denseDisparitySubpixel( ImageUInt8 rectLeft , ImageUInt8 rectRight ,
-                                                       int regionSize ,
-                                                       int minDisparity , int maxDisparity )
-    {
-        // A slower but more accuracy algorithm is selected
-        // All of these parameters should be turned
-        StereoDisparity<ImageUInt8,ImageFloat32> disparityAlg =
-                FactoryStereoDisparity.regionSubpixelWta(DisparityAlgorithms.RECT,
-                        minDisparity, maxDisparity, regionSize, regionSize, 25, 1, 0.2, ImageUInt8.class);
 
-        // process and return the results
-        disparityAlg.process(rectLeft,rectRight);
-
-        return disparityAlg.getDisparity();
-    }
 
 
 
