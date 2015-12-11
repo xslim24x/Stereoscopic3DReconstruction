@@ -14,7 +14,8 @@
     <script src="js/jquery-1.11.3.min.js"></script>
     <script src="js/bootstrap.js"></script>
     <script src="jquery.contextmenu.js"></script>
-
+    <script src="js/three.min.js"></script>
+    <script src="js/TrackballControls.js"></script>
     <script src="js/PLYLoader.js"></script>
     <script src="js/clientS3DR.js"></script>
     <link  rel="stylesheet" href="css/bootstrap.css" >
@@ -25,8 +26,7 @@
   <div class="center-block" style="margin: 2em;text-align: center;">
     <h1>Stereoscopic 3D Reconstruction System</h1>
     <div id="stereofeed">
-      <img id="lcam" src="/a?cam=0" width="35%" height="auto">
-      <img id="rcam" src="/a?cam=1" width="35%" height="auto">
+      <img id="camfeed" src="/a?cam=stereo" width="80%" height="auto">
       <!--<img src="/a?cam=2">  -->
       <br><br>
     </div>
@@ -63,7 +63,6 @@
 
     </div>
   </div>
-  <script src="js/three.js"></script>
   <script type="text/javascript">
 
     var _camera, _scene, _renderer, _trackball, _projector;
@@ -71,8 +70,10 @@
     var _entities = [];
 
     initGL();
-    //loadstuff();
+    loadstuff();
+    //ply();
     animate();
+
 
     function loadstuff() {
       var request = new XMLHttpRequest();
@@ -80,6 +81,23 @@
       request.send(null)
       var my_JSON_object = JSON.parse(request.responseText);
       createScene(my_JSON_object);
+    }
+
+    function ply(){
+      var loader = new THREE.PLYLoader();
+      loader.load( 'dragon.ply', function ( geometry ) {
+
+        var material = new THREE.MeshPhongMaterial( { color: 0x0055ff, specular: 0x111111, shininess: 200 } );
+        var mesh = new THREE.Mesh( geometry, material );
+
+        mesh.position.set( 0, - 0.25, 0 );
+        mesh.rotation.set( 0, - Math.PI / 2, 0 );
+
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        _scene.add( mesh );
+
+      } );
     }
 
 
@@ -238,9 +256,9 @@
       _scene.add(_camera);
 
       _trackball = new THREE.TrackballControls(_camera, container);
-      _trackball.rotateSpeed = 3.5;
-      _trackball.zoomSpeed = 2.0;
-      _trackball.panSpeed = 0.5;
+      _trackball.rotateSpeed = 8;
+      _trackball.zoomSpeed = 7.0;
+      _trackball.panSpeed = 4;
       _trackball.noZoom = false;
       _trackball.noPan = false;
       _trackball.staticMoving = true;
@@ -276,6 +294,8 @@
       _scene.add(light2);
       _scene.add(light3);
       _scene.add(light4);
+
+
 
       _renderer = new THREE.WebGLRenderer();  //CanvasRenderer();
       _renderer.setSize(width, height);

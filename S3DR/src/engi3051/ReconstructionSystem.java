@@ -4,8 +4,6 @@ import org.opencv.calib3d.Calib3d;
 import org.opencv.calib3d.StereoBM;
 import org.opencv.calib3d.StereoSGBM;
 import org.opencv.core.Point;
-import org.opencv.features2d.DescriptorExtractor;
-import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
@@ -13,12 +11,12 @@ import org.opencv.core.*;
 
 
 import javax.imageio.ImageIO;
-import java.awt.geom.Arc2D;
 import java.awt.image.BufferedImage;
 import java.awt.*;
 import java.io.*;
-import java.sql.SQLSyntaxErrorException;
+import java.text.DateFormat;
 import java.util.ArrayList;
+import java.util.Timer;
 
 /**
  * Created by Slim on 11/17/2015.
@@ -28,15 +26,21 @@ import java.util.ArrayList;
 
 public class ReconstructionSystem {
     //initial values of left/ right
-    private int left =0,right=1;
+    private int left,right;
     private ArrayList<Camera> cams = new ArrayList<Camera>();
 
     //openCV
-    private FeatureDetector detector;
-    private DescriptorExtractor extractor;
+    //private FeatureDetector detector;
+    //private DescriptorExtractor extractor;
     private StereoBM smatcher;
     private StereoSGBM sgbmmatcher;
     private BufferedImage camdisc;
+    //boofcv
+    final int calibnum = 15;
+    private boolean isCalib;//if cams change set to false
+    ArrayList<BufferedImage> rightpics;
+    ArrayList<BufferedImage> leftpics;
+
     //constructor
     public ReconstructionSystem(){
         Mat i = new Mat(400,600, CvType.CV_8UC3);
@@ -47,16 +51,44 @@ public class ReconstructionSystem {
             e.printStackTrace();
         }
 
-        detector = FeatureDetector.create(FeatureDetector.FAST);
-        extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
+        //detector = FeatureDetector.create(FeatureDetector.FAST);
+        //extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
         //smatcher = StereoBM.create();
         //sgbmmatcher = StereoSGBM.create(2,2,1);
 
         initCams();
+        left = 0;
+        right = 1;
+        isCalib = false;
     }
 
     public boolean frameread(int c, Mat f){
         return cams.get(c).getFrame(f);
+    }
+
+    public BufferedImage StereoCam() throws IOException {
+        //act as a messenger to user
+        //TODO create timer for overlayed text
+        //coordinate calibration
+        Mat l = new Mat();
+        Mat r = new Mat();
+        boolean chessinleft = frameread(left, l);
+        boolean chessinright = frameread(right, r);
+        BufferedImage iml = mat2image(l);
+        BufferedImage imr = mat2image(r);
+        try {
+            if (chessinleft && chessinright){
+                //TODO add message with count
+                if (!isCalib){
+                    leftpics.add(iml);
+                    rightpics.add(imr);
+                }
+            }
+        }
+        catch (Exception e){
+            System.out.println("Failed getting both frames in stereo");
+        }
+        return joinImages(iml,imr);
     }
 
     public BufferedImage mat2image(Mat f) throws IOException {
@@ -83,7 +115,15 @@ public class ReconstructionSystem {
         }
         catch (Exception e){
             //works to remove problematic false cameras
-            cams.remove(cams.size()-1);
+//            Iterator<Camera> c = cams.iterator();
+//
+//            while(c.hasNext()){
+//                if (!c.next().getCamsource().isOpened()){
+//                    cams.remove(c.next());
+//                }
+//            }
+            //cams.get(cams.size()-1).getCamsource().release();
+            //cams.remove(cams.size()-1);
             return camdisc;
         }
 
@@ -91,13 +131,23 @@ public class ReconstructionSystem {
         return mat2image(i);
     }
 
-    public void initCams(){
+
+
+    private void initCams(){
 
         // max 12 capture devices are connected -> this is opening more cameras than expected..
         for (int i = 0;i<12;i++){
             VideoCapture c = new VideoCapture(i);
-            if (c.isOpened())
-                cams.add(new Camera(c));
+            try {
+                c.open(i);
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (c.isOpened()) {
+                cams.add(new Camera(c, this));
+                System.out.println("adding new cam" + c.hashCode());
+            }
         }
 
     }
@@ -133,6 +183,20 @@ public class ReconstructionSystem {
         }
 
         return disparity;
+    }
+
+    public static BufferedImage joinImages(BufferedImage left,BufferedImage right) {
+        int space = 25;
+        int w = left.getWidth()+right.getWidth()+space;
+        int h = Math.max(left.getHeight(),right.getHeight());
+        BufferedImage newImage = new BufferedImage(w,h, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2 = newImage.createGraphics();
+        g2.setPaint(Color.WHITE);
+        g2.fillRect(0, 0, w, h);
+        g2.drawImage(left, null, 0, 0);
+        g2.drawImage(right, null, left.getWidth()+space, 0);
+        g2.dispose();
+        return newImage;
     }
 
     public Mat normalizedDisp(int type){

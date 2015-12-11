@@ -65,15 +65,21 @@ public class S3DRServlet extends HttpServlet {
         String getdisp = request.getParameter("disp");
         String getcap = request.getParameter("cap");
         if (getcam!=null){
-            /*
-            image = rs.returnFeed();
-            response.setContentType("image/jpeg");
-            ImageIO.write(image,"jpeg",outputStream);
-            outputStream.flush();
-            */
-            int camreq = Integer.parseInt(getcam);
-            image = rs.returnFeed(camreq);
-            ImageIO.write(image,"jpeg",outputStream);
+            if (getcam.contains("stereo")){
+                image = rs.StereoCam();
+                response.setContentType("image/jpeg");
+                ImageIO.write(image,"jpeg",outputStream);
+            }
+            else{
+                try{
+                    int camreq = Integer.parseInt(getcam);
+                    image = rs.returnFeed(camreq);
+                    ImageIO.write(image,"jpeg",outputStream);
+                }
+                catch (NumberFormatException e){
+
+                }
+            }
             outputStream.flush();
 
         }
