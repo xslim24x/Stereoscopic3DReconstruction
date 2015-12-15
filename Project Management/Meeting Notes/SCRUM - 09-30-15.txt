@@ -1,0 +1,19 @@
+Pre Requirement Document
+3:50 PM September 30 2015
+
+Scrum meeting:	
+	Slim 
+		- Project Objectives and statement problem
+		- Domain Analysis and description of background info
+		- Business model
+			Description of general field of business
+			Potential customer and users
+	
+	Antoine
+		- Business model
+			Environment and system
+			References
+		- Functional requirement
+		- Non-Functional requirement
+		- CASE tools
+		

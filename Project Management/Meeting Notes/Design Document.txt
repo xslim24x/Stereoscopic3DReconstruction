@@ -1,0 +1,38 @@
+Design Document
+5:30 PM November 4 2015
+Lib Room 1006
+
+Document Tasks:
+	Cover page
+	Revision Page
+	Table of content
+	
+	Introduction
+		Design Overview
+		Changes to the specification doc
+		
+	Complete system architecture
+		System architecture
+		Class diagram
+		GUI
+		
+	Sequence Diagram
+	
+	Object Oriented Design
+		Step 1:	
+			attributes
+			methods
+			algorithms
+			
+		Step 2:
+			pseudocode
+			
+	Database diagram update
+	GUI update
+	Design Impact
+		privacy, security and safety
+		societal and economic impact
+		project cost
+		
+	Technical Documentation
+	Document structure

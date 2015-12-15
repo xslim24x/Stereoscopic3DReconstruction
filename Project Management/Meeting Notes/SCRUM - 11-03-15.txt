@@ -1,0 +1,21 @@
+Pre Design Document
+4:30 PM November 3 2015
+
+Scrum meeting:
+		Slim
+				- Introduction
+				- System architecture
+				- Class diagram
+				- GUI
+				
+				Sequence Diagram
+		Antoine
+				- Object Oriented Design
+					step 1: attributes, methods and algorithms
+					step 2: pseudocode
+				
+				- Design impact
+						privacy, security and safety
+						societal and economic impact
+						project cost
+				

@@ -1,0 +1,21 @@
+Pre Specification Document
+1:30 PM October 20 2015
+
+Scrum meeting:
+	Slim:
+		Product Specification
+			UML Functional model
+			Software architecture
+			UML Class diagram
+			User interface (GUI)
+			Technical documentation
+			
+	Antoine:
+		Project Management model
+			Software process model
+			Roles and responsibilities
+				subsystems
+				deliverables and milestones
+				leadership
+			Intermediate COCOMO
+			Risks and mitigation
