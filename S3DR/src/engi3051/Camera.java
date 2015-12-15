@@ -16,17 +16,20 @@ import java.util.List;
 /**
  * Created by Slim on 11/6/2015.
  */
+//Camera class
 public class Camera {
 
+    //Todo for scalability assocation with reconstruction system should contain these values
     //chess board parameters for calibration
     private final int chessc = 6;
     private final int chessr = 4;
-    //max number of pics to take to calibrate
+    //max number of pics to take to calibrate (opencv only)
     private final int MaxCap = 12;
     //captures to wait between shots
     private int calibtimer = 0;
-    private boolean isCalibrated = false;
-    private MatOfPoint3f obj = new MatOfPoint3f();
+    private boolean isCalibrated = false; //opencv
+    private MatOfPoint3f obj = new MatOfPoint3f(); //storage of chessboard edge locations in 3d space
+    //association loopback
     private ReconstructionSystem rs;
 
 
@@ -40,45 +43,37 @@ public class Camera {
     private Mat intrinsic = new Mat(3, 3, CvType.CV_32FC1);
     private Mat distCoeffs = new Mat();
 
-
+    //image & objects points contain
     private ArrayList<Mat> imagePoints = new ArrayList<Mat>();
     private ArrayList<Mat> objectPoints = new ArrayList<Mat>();
     private Mat savedImage = new Mat();
     private int captures = 0;
 
-
+    //encapsulation get/set methods
     public VideoCapture getCamsource() {
         return camsource;
     }
-
     public List<Mat> getRvecs() {
         return rvecs;
     }
-
     public List<Mat> getTvecs() {
         return tvecs;
     }
-
     public Mat getIntrinsic() {
         return intrinsic;
     }
-
     public Mat getDistCoeffs() {
         return distCoeffs;
     }
-
     public ArrayList<Mat> getObjectPoints() {
         return objectPoints;
     }
-
     public ArrayList<Mat> getImagePoints() {
         return imagePoints;
     }
-
     public Size getSize(){
         return savedImage.size();
     }
-
     public void setIsCalibrated(boolean c){this.isCalibrated=c;}
     /*
     this.capture = new VideoCapture();
@@ -94,6 +89,7 @@ public class Camera {
     this.isCalibrated = false;
     */
 
+    //constructor
     public Camera(VideoCapture c, ReconstructionSystem r){
         //CaptureDeviceManager.getDeviceList(null);
         camsource = c;
@@ -102,19 +98,24 @@ public class Camera {
         intrinsic.put(0, 0, 1);
         intrinsic.put(1, 1, 1);
 
+        //
         for (int j = 0; j < chessc*chessr; j++) {
             obj.push_back(new MatOfPoint3f(new Point3(j / chessc, j % chessr, 0.0f)));
         }
     }
 
+    // replaces Mat f with camera frame with no alteration such as drawing detected chessboard (used for boofcv calibration)
     public void rawFrame(Mat f){
         camsource.read(f);
     }
 
+    //general getframe method
+    //output if chessboard is detected in frame an camera is uncalibrated
     public boolean getFrame(Mat f){
         boolean found = false;
         MatOfPoint2f imageCorners = new MatOfPoint2f();
         boolean rdy = camsource.read(f);
+        //set calibration timer to allow for geospatial variation in caliration images
         if (calibtimer > 0){
             calibtimer--;
         }
@@ -158,6 +159,9 @@ public class Camera {
         return found;
     }
 
+
+    //opencv calibration of camera
+    //fixes image based on intrinsic factors
     public void calibrateCam()
     {
         // calibrate!

@@ -29,18 +29,20 @@ import javax.imageio.*;
 /**
  * Created by Slim on 11/5/2015.
  */
+//servlet to organize and orchastrate communication between server and client webapp
 @WebServlet(name = "S3DRServlet", urlPatterns = {"/a"})
 public class S3DRServlet extends HttpServlet {
-    private String message;
     public ReconstructionSystem rs;
 
+    //initilization method
     public void init() throws ServletException
     {
-        // Do required initialization
+        // Do required initialization; in case maven dependeces arent set up
         String opencvpath = "D:\\opencv\\build\\java\\x64\\";
         System.load(opencvpath + Core.NATIVE_LIBRARY_NAME + ".dll");
         rs = new ReconstructionSystem();
         try {
+            //wait 1 sec to ensure cameras/everything else is ok
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -48,40 +50,33 @@ public class S3DRServlet extends HttpServlet {
 
     }
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        response.setContentType("application/json");
-        PrintWriter out = response.getWriter();
-        String getaction = request.getParameter("action");
-        if (getaction.contains("capture")){
-            rs.boofDisp();
-        }
-
-    }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
-
-        //PrintWriter out = response.getWriter();
-        //response.setContentType("text/html");
-        response.setContentType("image/jpeg");
         java.io.OutputStream outputStream = response.getOutputStream();
         BufferedImage image;
         String getcam = request.getParameter("cam");
         String getdisp = request.getParameter("disp");
         String getcap = request.getParameter("cap");
+        String getaction = request.getParameter("action");
+        //todo refactor this all to one parameter:action
         if (getcam!=null){
+            // left and right feed
             if (getcam.contains("stereo")){
                 image = rs.StereoCam();
                 response.setContentType("image/jpeg");
                 ImageIO.write(image,"jpeg",outputStream);
             }
+            //show boofcv disparity/pointcloud
             else if (getcam.contains("disp")){
                 rs.boofDisp();
             }
+            //get individual feeds
             else{
                 try{
                     int camreq = Integer.parseInt(getcam);
                     image = rs.returnFeed(camreq);
+                    response.setContentType("image/jpeg");
                     ImageIO.write(image,"jpeg",outputStream);
                 }
                 catch (NumberFormatException e){
@@ -91,19 +86,28 @@ public class S3DRServlet extends HttpServlet {
             outputStream.flush();
 
         }
+        //opencv disparity
         if (getdisp!=null){
             int disptype = Integer.parseInt(getdisp);
             image = rs.mat2image(rs.normalizedDisp(disptype));
+            response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
-            outputStream.flush();
         }
+        //opencv pointcloud
         if (getcap!=null){
             int disptype = Integer.parseInt(getcap);
             rs.reconstruct();
             image = rs.mat2image(rs.normalizedDisp(disptype));
+            response.setContentType("image/jpeg");
             ImageIO.write(image,"jpeg",outputStream);
-            outputStream.flush();
         }
+        if (getaction!=null){
+            if (getaction.contains("pointcloud")){
+                rs.boofDisp();
+            }
+
+        }
+        outputStream.flush();
         outputStream.close();
     }
 }

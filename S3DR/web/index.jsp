@@ -14,7 +14,8 @@
     <script src="js/jquery-1.11.3.min.js"></script>
     <script src="js/bootstrap.js"></script>
     <script src="jquery.contextmenu.js"></script>
-    <script src="js/three.min.js"></script>
+    <%--<script src="js/three.min.js"></script>--%>
+    <script src="js/three.js"></script>
     <script src="js/TrackballControls.js"></script>
     <script src="js/PLYLoader.js"></script>
     <script src="js/OBJLoader.js"></script>
@@ -26,13 +27,6 @@
   <body>
   <div class="center-block" style="margin: 2em;text-align: center;">
     <h1>Stereoscopic 3D Reconstruction System</h1>
-    <div class="btn-toolbar" style="float:right;margin-right:20%;">
-      <!-- <input type="file" class="show" id="files" name="file" /> -->
-
-      <button id="impbtn" class="btn btn-success btn-lg" onclick="ClickFile();"><span class="glyphicon glyphicon-import"></span> Import</button>
-      <button id="expbtn" type="submit" disabled="true" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-export"></span> Export</button>
-      <button id="capbtn" class="btn btn-primary btn-lg" ><span class="glyphicon glyphicon-camera"></span> Capture</button>
-    </div>
     <!--
     <div class="pull-left">
       <div style="float: left;margin: 1em"><img src="cam1.jpg"><p align="center">Camera 1</p></div>
@@ -43,6 +37,15 @@
       <img id="camfeed" src="/a?cam=stereo" width="80%">
       <!--<img src="/a?cam=2">  -->
       <br><br>
+    </div>
+    <div class="btn-toolbar" style="float:right;margin-right:20%;">
+      <!-- <input type="file" class="show" id="files" name="file" /> -->
+      <div style="height:0px;overflow:hidden">
+        <input type="file" id="fileInput" name="fileInput" accept=".ply" onchange="newFile();" />
+      </div>
+      <button id="impbtn" class="btn btn-success btn-lg" onclick="InputBtn();"><span class="glyphicon glyphicon-import"></span> Import</button>
+      <button id="expbtn" type="submit" disabled="true" class="btn btn-success btn-lg"><span class="glyphicon glyphicon-export"></span> Export</button>
+      <button id="capbtn" class="btn btn-primary btn-lg" onclick="CaptureBtn();" ><span class="glyphicon glyphicon-camera"></span> Capture</button>
     </div>
     <div style="margin: 5em;clear:left">
       <div id="3DArea" />
@@ -67,326 +70,116 @@
     </div>
   </div>
 
+  <script>
 
-  <script type="text/javascript">
+      //function to handle ply files containing point clouds with no faces and only vertices
+      function plyopen(thisfile){
+        var loader = new THREE.PLYLoader();
+        var group = new THREE.Object3D();
+        loader.load(thisfile, function (geometry) {
+          var material = new THREE.ParticleBasicMaterial({
+            size: 0.01,
+            opacity: 1.0,
+            transparent: true,
+            blending: THREE.AdditiveBlending
+          });
 
-    var _camera, _scene, _renderer, _trackball, _projector;
+          group = new THREE.ParticleSystem(geometry, material);
+          group.sortParticles = true;
 
-    var _entities = [];
-
-    initGL();
-    //loadstuff();
-    //ply();
-    //loadface();
-    animate();
-
-    function loadface(){
-      var loader = new THREE.OBJLoader( );
-      loader.load( 'cow.obj', function ( object ) {
-
-        object.position.y = - 80;
-        createScene( object );
-
-      } );
-    }
-
-    function loadstuff() {
-      var request = new XMLHttpRequest();
-      request.open("GET", "./arbor.json", false);
-      request.send(null)
-      var my_JSON_object = JSON.parse(request.responseText);
-      createScene(my_JSON_object);
-    }
-
-    function ply(){
-      var loader = new THREE.PLYLoader();
-      loader.load( 'dragon.ply', function ( geometry ) {
-
-        var material = new THREE.MeshPhongMaterial( { color: 0x0055ff, specular: 0x111111, shininess: 200 } );
-        var mesh = new THREE.Mesh( geometry, material );
-
-        mesh.position.set( 0, - 0.25, 0 );
-        mesh.rotation.set( 0, - Math.PI / 2, 0 );
-
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-        createScene(mesh);
-        //_scene.add( mesh );
-
-      } );
-    }
-
-
-    function ConvertClr(clr) {
-      var bytes = [];
-
-      bytes[0] = (clr >>> 24) & 0xFF; //R
-      bytes[1] = (clr >>> 16) & 0xFF; //G
-      bytes[2] = (clr >>> 8) & 0xFF;  //B
-      bytes[3] = (clr >>> 0) & 0xFF;  //A
-
-      return bytes[2] | (bytes[1] << 8) | (bytes[0] << 16);
-    }
-
-    function clearScene()
-    {
-      for (var i = 0; i < _entities.length; i++) {
-        _scene.remove(_entities[i]);
+          console.log(group);
+          scene.add(group);
+        });
       }
 
-      _entities = [];
-    }
 
-    function createScene(meshDataList){
 
-      clearScene();
+      // create a scene, cam and setup webglrendering
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+      var webGLRenderer = new THREE.WebGLRenderer();
+      webGLRenderer.setClearColor(new THREE.Color(0x000, 1.0));
+      webGLRenderer.setSize(600, 400);
+      webGLRenderer.shadowMapEnabled = true;
 
-      _camera.fov = 40;
-      _camera.position.x = 0;
-      _camera.position.y = 0;
-      _camera.position.z = 30;
+      //camera initial position
+      camera.fov = 40
+      camera.position.x = 10;
+      camera.position.y = 10;
+      camera.position.z = 10;
+      camera.lookAt(new THREE.Vector3(0, -2, 0));
 
-      var center = [0.0, 0.0, 0.0];
-
-      var len = meshDataList.length;
-
-      for (var meshIdx = 0; meshIdx < len; meshIdx++) {
-
-        var meshData = meshDataList[meshIdx];
-
-        var geometry = new THREE.Geometry();
-
-        var vertexArray = [];
-
-        //uncompress vertices array
-        for (var i = 0; i < meshData.VertexIndices.length; i += 1) {
-
-          var idx = 3 * meshData.VertexIndices[i];
-
-          vertexArray[i] = new THREE.Vector3(
-                  meshData.VertexCoords[idx],
-                  meshData.VertexCoords[idx + 1],
-                  meshData.VertexCoords[idx + 2]);
-        }
-
-        var normalArray = [];
-
-        //uncompress normals array
-        for (var i = 0; i < meshData.NormalIndices.length; i += 1) {
-
-          var idx = 3 * meshData.NormalIndices[i];
-
-          normalArray[i] = new THREE.Vector3(
-                  meshData.Normals[idx],
-                  meshData.Normals[idx + 1],
-                  meshData.Normals[idx + 2]);
-        }
-
-        //Generate Faces
-        for (var i = 0; i < vertexArray.length; i += 3) {
-
-          geometry.vertices.push(vertexArray[i]);
-          geometry.vertices.push(vertexArray[i + 1]);
-          geometry.vertices.push(vertexArray[i + 2]);
-
-          var face = new THREE.Face3(i, i + 1, i + 2)
-
-          geometry.faces.push(face);
-
-          face.vertexNormals.push(normalArray[i]);
-          face.vertexNormals.push(normalArray[i + 1]);
-          face.vertexNormals.push(normalArray[i + 2]);
-        }
-
-        center[0] += meshData.Center[0];
-        center[1] += meshData.Center[1];
-        center[2] += meshData.Center[2];
-
-        var material = new THREE.MeshLambertMaterial(
-                {
-                  color: ConvertClr(meshData.Color[0]),
-                  shading: THREE.SmoothShading
-                });
-
-        var body = new THREE.Mesh(geometry, material);
-
-        body.doubleSided = false;
-
-        body.geometry.dynamic = true;
-        body.geometry.__dirtyVertices = true;
-        body.geometry.__dirtyNormals = true;
-
-        var entity = new THREE.Object3D();
-
-        entity.add(body);
-
-        _entities.push(entity);
-
-        _scene.add(entity);
-      }
-
-      center[0] = center[0] / len;
-      center[1] = center[1] / len;
-      center[2] = center[2] / len;
-
-      for (var i = 0; i < _entities.length; i++) {
-        _entities[i].applyMatrix(new THREE.Matrix4().makeTranslation(
-                -center[0],
-                -center[1],
-                -center[2]));
-      }
-    };
-
-    function hasWebGL() {
-      try {
-        var canvas = document.createElement('canvas');
-        var ret =
-                !!(window.WebGLRenderingContext &&
-                        (canvas.getContext('webgl') ||
-                        canvas.getContext('experimental-webgl'))
-                );
-        return ret;
-      }
-      catch (e) {
-        return false;
-      };
-    }
-
-    function initGL() {
-
-      var animateWithWebGL = hasWebGL();
 
       var container = document.getElementById("3DArea");
 
-      _scene = new THREE.Scene();
+      //setup mouse trackball to change perspectve
+      trackball = new THREE.TrackballControls(camera, container);
+      trackball.rotateSpeed = 8;
+      trackball.zoomSpeed = 7.0;
+      trackball.panSpeed = 4;
+      trackball.noZoom = false;
+      trackball.noPan = false;
+      trackball.staticMoving = true;
+      trackball.dynamicDampingFactor = 0.3;
+      trackball.minDistance = 1;
+      trackball.maxDistance = 100;
+      trackball.keys = [82, 90, 80]; // [r:rotate, z:zoom, p:pan]
 
-      var width = 600;
-      var height = 400;
+      var spotLight = new THREE.SpotLight(0xffffff);
+      spotLight.position.set(20, 20, 20);
+      scene.add(spotLight);
 
-      _camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 500);
+      $("#3DArea").append(webGLRenderer.domElement);
 
-      _camera.position.x = 0;
-      _camera.position.y = 0;
-      _camera.position.z = 50;
+      var group;
+      animate();
 
-      _scene.add(_camera);
+      function onDocumentMouseWheel(event) {
+        camera.fov -= event.wheelDeltaY * 0.05;
 
-      _trackball = new THREE.TrackballControls(_camera, container);
-      _trackball.rotateSpeed = 8;
-      _trackball.zoomSpeed = 7.0;
-      _trackball.panSpeed = 4;
-      _trackball.noZoom = false;
-      _trackball.noPan = false;
-      _trackball.staticMoving = true;
-      _trackball.dynamicDampingFactor = 0.3;
-      _trackball.minDistance = 1;
-      _trackball.maxDistance = 100;
-      _trackball.keys = [82, 90, 80]; // [r:rotate, z:zoom, p:pan]
-      //_trackball.addEventListener('change', render);
+        if (camera.fov < 10.0) {
+          camera.fov = 10.0;
+        }
 
-      // create lights
-      var light1 = new THREE.PointLight(0xFFFFFF);
-      var light2 = new THREE.PointLight(0xFFFFFF);
-      var light3 = new THREE.PointLight(0xFFFFFF);
-      var light4 = new THREE.PointLight(0xFFFFFF);
+        if (camera.fov > 180.0) {
+          camera.fov = 180.0;
+        }
 
-      light1.position.x = 100;
-      light1.position.y = 50;
-      light1.position.z = 200;
-
-      light2.position.x = -100;
-      light2.position.y = 150;
-      light2.position.z = -200;
-
-      light3.position.x = 100;
-      light3.position.y = -150;
-      light3.position.z = -100;
-
-      light4.position.x = -100;
-      light4.position.y = -150;
-      light4.position.z = 100;
-
-      _scene.add(light1);
-      _scene.add(light2);
-      _scene.add(light3);
-      _scene.add(light4);
-
-
-
-      _renderer = new THREE.WebGLRenderer();  //CanvasRenderer();
-      _renderer.setSize(width, height);
-      _renderer.setClearColor(0x000000, 0);
-      _projector = new THREE.Projector();
-
-      container.appendChild(_renderer.domElement);
-      container.firstElementChild.setAttribute("id","3Drend");
-      document.addEventListener('mousewheel', onDocumentMouseWheel, false);
-
-      _renderer.domElement.addEventListener('mousedown', onDocumentMouseDown, false);
-
-      var container = document.getElementById("3DArea");
-    }
-
-    //zoom
-    function onDocumentMouseWheel(event) {
-      _camera.fov -= event.wheelDeltaY * 0.05;
-
-      if (_camera.fov < 10.0) {
-        _camera.fov = 10.0;
+        camera.updateProjectionMatrix();
+        render();
       }
 
-      if (_camera.fov > 180.0) {
-        _camera.fov = 180.0;
+      //rotate
+      function onDocumentMouseDown(event) {
+
+        event.preventDefault();
+
+        var container = document.getElementById("3DArea");
+
+        var mouseX = (event.clientX / 600) * 2 - 1;
+        var mouseY = -(event.clientY / 400) * 2 + 1;
+
+        var vector = new THREE.Vector3(mouseX, mouseY, 0.5);
+
+        var ray = new THREE.Ray(
+                camera.position,
+                vector.sub(camera.position).normalize());
+
+
+        projector.unprojectVector(vector, camera);
       }
 
-      _camera.updateProjectionMatrix();
-
-      render();
-    }
-
-    //rotate
-    function onDocumentMouseDown(event) {
-
-      event.preventDefault();
-
-      var container = document.getElementById("3DArea");
-
-      var mouseX = (event.clientX / window.innerWidth) * 2 - 1;
-      var mouseY = -(event.clientY / window.innerHeight) * 2 + 1;
-
-      var vector = new THREE.Vector3(mouseX, mouseY, 0.5);
-
-      var ray = new THREE.Ray(
-              _camera.position,
-              vector.subSelf(_camera.position).normalize());
-
-      /*var vector = new THREE.Vector3(
-       ((event.clientX - container.offsetLeft) / _scene.WIDTH) * 2 - 1,
-       -((event.clientY - container.offsetTop) / _scene.HEIGHT) * 2 + 1,
-       0.5);*/
-
-      _projector.unprojectVector(vector, _camera);
-
-      var intersects = ray.intersectObjects(_entities);
-
-      if (intersects.length > 0) {
-
-        //SELECTED = intersects[0].object;
-
-        alert("Intersect: " + intersects.length)
-
+      function animate() {
+        requestAnimationFrame(animate);
+        trackball.update();
+        render();
       }
-    }
 
-    function animate() {
-      requestAnimationFrame(animate);
-      _trackball.update();
-      render();
-    }
+      function render() {
+        webGLRenderer.render(scene, camera);
+      }
 
-    function render() {
-      _renderer.render(_scene, _camera);
-    }
+
 
   </script>
   </body>

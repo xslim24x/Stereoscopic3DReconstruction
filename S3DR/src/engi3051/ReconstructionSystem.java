@@ -5,7 +5,6 @@ import boofcv.abst.feature.disparity.StereoDisparity;
 import boofcv.abst.fiducial.calib.ConfigChessboard;
 import boofcv.abst.geo.calibration.CalibrateStereoPlanar;
 import boofcv.abst.geo.calibration.CalibrationDetector;
-import boofcv.alg.depth.VisualDepthOps;
 import boofcv.alg.distort.ImageDistort;
 import boofcv.alg.geo.PerspectiveOps;
 import boofcv.alg.geo.RectifyImageOps;
@@ -49,9 +48,9 @@ import java.util.Timer;
  */
 
 
-
+//Main class for the 3D Stereoscopic Reconstruction system
 public class ReconstructionSystem {
-    //initial values of left/ right
+    //initial values of left/ right cameras coresponding to device number in arraylist of all cameras detected
     private int left,right;
     private ArrayList<Camera> cams = new ArrayList<Camera>();
 
@@ -62,9 +61,12 @@ public class ReconstructionSystem {
     private StereoSGBM sgbmmatcher;
     private BufferedImage camdisc;
     //boofcv
+    //number of pictures needed for a calibration
     final int calibnum = 15;
+    //time between capture requests
     int pictimer = 20;
     private boolean isCalib;//if cams change set to false
+    //fields used in stereo calibratio
     ArrayList<BufferedImage> leftpics;
     ArrayList<BufferedImage> rightpics;
     private StereoParameters stereoCalib;
@@ -79,6 +81,7 @@ public class ReconstructionSystem {
             e.printStackTrace();
         }
 
+        //feature detectors aren't needed outide classes
         //detector = FeatureDetector.create(FeatureDetector.FAST);
         //extractor = DescriptorExtractor.create(DescriptorExtractor.ORB);
         //smatcher = StereoBM.create();
@@ -95,10 +98,13 @@ public class ReconstructionSystem {
     //TODO Add calibration reading
     //StereoParameters param = UtilIO.loadXML(calibDir , "stereo.xml");
 
+    //
     public boolean frameread(int c, Mat f){
         return cams.get(c).getFrame(f);
     }
 
+    //Function for viewing stereo feed
+    // output: joined left/right images
     public BufferedImage StereoCam() throws IOException {
         //act as a messenger to user
         //TODO create timer for overlayed text
@@ -112,6 +118,7 @@ public class ReconstructionSystem {
             boolean chessinright = frameread(right, r);
             BufferedImage iml = mat2image(l);
             BufferedImage imr = mat2image(r);
+            //ensure calibration images without chessboard in both are discarded to not waste waste processor time during stereo calibration
         if (chessinleft && chessinright){
             //TODO add message with count
             if (!isCalib && (pictimer == 0) && (leftpics.size() < calibnum)){
@@ -119,7 +126,7 @@ public class ReconstructionSystem {
                 Mat rraw = new Mat();
                 cams.get(left).rawFrame(lraw);
                 cams.get(right).rawFrame(rraw);
-
+                //calibration images shouldnt have color drawn in chessboard
                 leftpics.add(mat2image(lraw));
                 rightpics.add(mat2image(rraw));
                 System.out.println("Calib pic:" + leftpics.size());
@@ -139,12 +146,15 @@ public class ReconstructionSystem {
         }
     }
 
+    //method to initiate boofcv calibration
     private void boofCalib(){
 
+        //chessboard parameters are setup using default library settings
         CalibrationDetector detector = FactoryPlanarCalibrationTarget.detectorChessboard(new ConfigChessboard(5,7, 30));
         CalibrateStereoPlanar calibratorAlg = new CalibrateStereoPlanar(detector);
         calibratorAlg.configure(true, 2, false);
 
+        //ensure calbration images match in containing detected chessboard
         for (int i =0; i < leftpics.size(); i++){
             ImageFloat32 imageLeft = ConvertBufferedImage.convertFrom(leftpics.get(i),(ImageFloat32)null);
             ImageFloat32 imageRight = ConvertBufferedImage.convertFrom(rightpics.get(i),(ImageFloat32)null);
@@ -154,7 +164,7 @@ public class ReconstructionSystem {
         }
         stereoCalib = calibratorAlg.process();
 
-        // TODO show accuracy
+        // TODO show accuracy overlayed camera feed
         // print out information on its accuracy and errors
         calibratorAlg.printStatistics();
         // save results to a file and print out
@@ -166,9 +176,12 @@ public class ReconstructionSystem {
         cams.get(right).setIsCalibrated(true);
     }
 
+    //boofcv reconstruction function
     public void boofDisp() throws IOException {
-        double scale = 0.5;
 
+        double scale = 2.0;
+
+        //SGBM reconstruction
         int minDisparity = 0;
         int maxDisparity = 240;
         int rangeDisparity = maxDisparity-minDisparity;
@@ -178,48 +191,38 @@ public class ReconstructionSystem {
         cams.get(left).rawFrame(lraw);
         cams.get(right).rawFrame(rraw);
 
-        //testing purposes
+        //open saved parameters to file
         StereoParameters stereoCalib = UtilIO.loadXML("d:/stereo.xml");
 
         ImageUInt8 distLeft = ConvertBufferedImage.convertFrom(mat2image(lraw), (ImageUInt8) null);
         ImageUInt8 distRight = ConvertBufferedImage.convertFrom(mat2image(rraw),(ImageUInt8)null);
 
-        // re-scale input images
+        // apply scale to input images
         ImageUInt8 scaledLeft = new ImageUInt8((int)(distLeft.width*scale),(int)(distLeft.height*scale));
         ImageUInt8 scaledRight = new ImageUInt8((int)(distRight.width*scale),(int)(distRight.height*scale));
-
         new FDistort(distLeft,scaledLeft).scaleExt().apply();
         new FDistort(distRight,scaledRight).scaleExt().apply();
-
-        // Don't forget to adjust camera parameters for the change in scale!
         PerspectiveOps.scaleIntrinsic(stereoCalib.left, scale);
         PerspectiveOps.scaleIntrinsic(stereoCalib.right,scale);
 
-        // rectify images and compute disparity
+        // rectify and compute disparity
         ImageUInt8 rectLeft = new ImageUInt8(scaledLeft.width,scaledLeft.height);
         ImageUInt8 rectRight = new ImageUInt8(scaledRight.width,scaledRight.height);
-
         RectifyCalibrated rectAlg = rectify(scaledLeft,scaledRight,stereoCalib,rectLeft,rectRight);
-
-
         StereoDisparity<ImageUInt8,ImageFloat32> disparityAlg =
                 FactoryStereoDisparity.regionSubpixelWta(DisparityAlgorithms.RECT,
                         minDisparity, maxDisparity, 3, 3, 25, 1, 0.2, ImageUInt8.class);
-
-        // process and return the results
         disparityAlg.process(rectLeft,rectRight);
-
         ImageFloat32 disparity = disparityAlg.getDisparity();
 
-        // ------------- Convert disparity image into a 3D point cloud
 
-        // The point cloud will be in the left cameras reference frame
+
+        // ------------- Convert disparity image into a 3D point cloud in frame of left camera
         DenseMatrix64F rectK = rectAlg.getCalibrationMatrix();
         DenseMatrix64F rectR = rectAlg.getRectifiedRotation();
 
-        // used to display the point cloud
+        //display viewer window for testing
         PointCloudViewer viewer = new PointCloudViewer(rectK, 10);
-
         viewer.setPreferredSize(new Dimension(rectLeft.width,rectLeft.height));
 
         // extract intrinsic parameters from rectified camera
@@ -233,14 +236,16 @@ public class ReconstructionSystem {
         Point3D_F64 pointRect = new Point3D_F64();
         Point3D_F64 pointLeft = new Point3D_F64();
 
-        ArrayList<String>cloudexp = new ArrayList<String>();
+        //keep track of points
+        ArrayList<String> pntsArray = new ArrayList<String>();
         String line;
 
+        // Iterate through all points
         for( int y = 0; y < disparity.height; y++ ) {
             for( int x = 0; x < disparity.width; x++ ) {
                 double d = disparity.unsafe_get(x,y) + minDisparity;
 
-                // skip over pixels were no correspondence was found
+                // skip over no correspondence was found
                 if( d >= rangeDisparity )
                     continue;
 
@@ -252,23 +257,24 @@ public class ReconstructionSystem {
                 // rotate into the original left camera frame
                 GeometryMath_F64.multTran(rectR, pointRect, pointLeft);
 
-                // add pixel to the view for display purposes and sets its gray scale value
+                // add pixel to view amd pointcloud and sets its gray scale value
                 int v = rectLeft.unsafe_get(x, y);
                 viewer.addPoint(pointLeft.x, pointLeft.y, pointLeft.z, v << 16 | v << 8 | v);
                 double grayv = ((double)v)/255;
                 line = pointLeft.x + " " + pointLeft.y + " " + pointLeft.z + " " + grayv;
-                cloudexp.add(line);
+                pntsArray.add(line);
             }
         }
 
-        // display the results.  Click and drag to change point cloud camera
+        // display the results in interactive frame: again for testing
         BufferedImage visualized = VisualizeImageData.disparity(disparity, null,minDisparity, maxDisparity,0);
         ShowImages.showWindow(viewer,"point");
         ShowImages.showWindow(rectLeft,"rect left");
-        //saveCloud(cloudexp);
+        //saveCloud(pntsArray);
 
     }
 
+//output obj/ply format
     private void saveCloud(ArrayList<String> lines){
 
         PrintWriter pw = null;
@@ -297,7 +303,7 @@ public class ReconstructionSystem {
     }
 
 
-
+    //boofcv rectify, remove distortion
     public static RectifyCalibrated rectify( ImageUInt8 origLeft , ImageUInt8 origRight ,
                                              StereoParameters param ,
                                              ImageUInt8 rectLeft , ImageUInt8 rectRight )
@@ -305,20 +311,16 @@ public class ReconstructionSystem {
         // Compute rectification
         RectifyCalibrated rectifyAlg = RectifyImageOps.createCalibrated();
         Se3_F64 leftToRight = param.getRightToLeft().invert(null);
-
-        // original camera calibration matrices
         DenseMatrix64F K1 = PerspectiveOps.calibrationMatrix(param.getLeft(), null);
         DenseMatrix64F K2 = PerspectiveOps.calibrationMatrix(param.getRight(), null);
 
+        //use original camera calibration matrices for rectification of each image
         rectifyAlg.process(K1,new Se3_F64(),K2,leftToRight);
-
-        // rectification matrix for each image
         DenseMatrix64F rect1 = rectifyAlg.getRect1();
         DenseMatrix64F rect2 = rectifyAlg.getRect2();
-        // New calibration matrix,
-        DenseMatrix64F rectK = rectifyAlg.getCalibrationMatrix();
 
-        // Adjust the rectification to make the view area more useful
+        // calibration matrix, Adjust the rectification
+        DenseMatrix64F rectK = rectifyAlg.getCalibrationMatrix();
         RectifyImageOps.allInsideLeft(param.left, rect1, rect2, rectK);
 
         // undistorted and rectify images
@@ -326,7 +328,6 @@ public class ReconstructionSystem {
                 RectifyImageOps.rectifyImage(param.getLeft(), rect1, BorderType.SKIP, ImageUInt8.class);
         ImageDistort<ImageUInt8,ImageUInt8> imageDistortRight =
                 RectifyImageOps.rectifyImage(param.getRight(), rect2, BorderType.SKIP, ImageUInt8.class);
-
         imageDistortLeft.apply(origLeft, rectLeft);
         imageDistortRight.apply(origRight, rectRight);
 
@@ -336,7 +337,7 @@ public class ReconstructionSystem {
 
 
 
-
+    //method to convert openv mat to buffered image
     public BufferedImage mat2image(Mat f) throws IOException {
         BufferedImage i;
         MatOfByte byteMat = new MatOfByte();
@@ -350,11 +351,12 @@ public class ReconstructionSystem {
         //Imgcodecs.imwrite("camera"+cams.indexOf(c)+".jpg",f);
     }
 
+    //method used to return feed of cameraa, accounts for disconnected/unavailable device
     public BufferedImage returnFeed(int cam) throws IOException {
         if (cam>=cams.size()){
             return camdisc;
         }
-        System.out.println(cams.size());
+        //System.out.println(cams.size());
         Mat i = new Mat();
         try{
             frameread(cam,i);
@@ -378,7 +380,7 @@ public class ReconstructionSystem {
     }
 
 
-
+    //method to setup and initialize list of cams
     private void initCams(){
 
         // max 12 capture devices are connected -> this is opening more cameras than expected..
@@ -398,17 +400,18 @@ public class ReconstructionSystem {
 
     }
 
+    //opencv calibrate individual devices separately
     public void calibrateCam(int c){
         cams.get(c).calibrateCam();
         System.out.println("Cams "+cams.size());
     }
 
-
+    //oopencv method or calculating disparity
     public Mat disparity(int type){
 
+        //get left and right
         Mat lframe = new Mat();
         Mat rframe = new Mat();
-
         cams.get(0).getFrame(lframe);
         cams.get(1).getFrame(rframe);
 
@@ -416,11 +419,13 @@ public class ReconstructionSystem {
         Imgproc.cvtColor(lframe, lframe, Imgproc.COLOR_BGR2GRAY);
         Imgproc.cvtColor(rframe, rframe, Imgproc.COLOR_BGR2GRAY);
 
+        //setup mat where results go
         Mat disparity = new Mat(lframe.size(), lframe.type());
         int numDisparity = (int)(lframe.size().width/8);
 
+        //type -> sgbm gets more info, looks messier but bm is cleaner
         if (type == 1){
-            sgbmmatcher = StereoSGBM.create(12,96,15);
+            sgbmmatcher = StereoSGBM.create(12,96,15); //needs tweakign
             sgbmmatcher.compute(lframe,rframe,disparity);
         }
         else{
@@ -431,13 +436,14 @@ public class ReconstructionSystem {
         return disparity;
     }
 
+    //method to join 2 images with spacing of 25 px between
     public static BufferedImage joinImages(BufferedImage left,BufferedImage right) {
         int space = 25;
         int w = left.getWidth()+right.getWidth()+space;
-        int h = Math.max(left.getHeight(),right.getHeight());
+        int h = Math.max(left.getHeight(),right.getHeight()); //max height is used
         BufferedImage newImage = new BufferedImage(w,h, BufferedImage.TYPE_INT_RGB);
         Graphics2D g2 = newImage.createGraphics();
-        g2.setPaint(Color.WHITE);
+        g2.setPaint(Color.WHITE);//white where image doest match
         g2.fillRect(0, 0, w, h);
         g2.drawImage(left, null, 0, 0);
         g2.drawImage(right, null, left.getWidth()+space, 0);
@@ -445,65 +451,30 @@ public class ReconstructionSystem {
         return newImage;
     }
 
+    //normalizes disparity by increasing contrast for viewing
     public Mat normalizedDisp(int type){
         Mat disp = disparity(type);
         Core.normalize(disp, disp, 0, 256, Core.NORM_MINMAX);
         return disparity(type);
     }
 
-    private Mat disparityMap(Mat mLeft, Mat mRight){
-        // Converts the images to a proper type for stereoMatching
-
-        Mat lold = new Mat();
-        Mat rold = new Mat();
-        cams.get(0).getFrame(lold);
-        cams.get(1).getFrame(rold);
-        Mat leftfr = new Mat();
-        Mat rightfr = new Mat();
-
-        Imgproc.cvtColor(lold, leftfr, Imgproc.COLOR_RGB2GRAY);
-        Imgproc.cvtColor(rold, rightfr, Imgproc.COLOR_RGB2GRAY);
-
-        // Create a new image using the size and type of the left image
-        Mat disparity = new Mat(leftfr.size(), leftfr.type());
-
-        int numDisparity = (int)(leftfr.size().width/8);
-
-        /*
-        StereoSGBM stereoAlgo = new StereoSGBM(
-                0,    // min DIsparities
-                numDisparity, // numDisparities
-                11,   // SADWindowSize
-                2*11*11,   // 8*number_of_image_channels*SADWindowSize*SADWindowSize   // p1
-                5*11*11,  // 8*number_of_image_channels*SADWindowSize*SADWindowSize  // p2
-
-                -1,   // disp12MaxDiff
-                63,   // prefilterCap
-                10,   // uniqueness ratio
-                0, // sreckleWindowSize
-                32, // spreckle Range
-                false); // full DP
-        // create the DisparityMap - SLOW: O(Width*height*numDisparity)
-        stereoAlgo.compute(left, right, disparity);
-
-        Core.normalize(disparity, disparity, 0, 256, Core.NORM_MINMAX);
-        */
-        return disparity;
-    }
-
+    //openv: method to reconstruct and initiate ouput pointcloud
     public void reconstruct(){
         Camera left = cams.get(0);
         Camera right = cams.get(1);
 
+        //individual camera paramters
         Mat R1 = new Mat();
         Mat R2 = new Mat();
         Mat P1 = new Mat();
         Mat P2 = new Mat();
 
+        //Calculated rotation/translation from calibration, out Essential/fundamental matrices
         Mat R = new Mat();
         Mat T = new Mat();
         Mat E = new Mat();
         Mat F = new Mat();
+        //Q matrix from Rectification
         Mat Q = new Mat();
 
         //stupidly long so expanded func
